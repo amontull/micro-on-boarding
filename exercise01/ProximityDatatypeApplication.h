@@ -9,7 +9,14 @@
 * best-effort reliability by default.
 */
 
-#define USE_RELIABLE_QOS
+/* #define USE_RELIABLE_QOS */
+
+/*e \dref_Example_Config_UseDeadlineQos
+* Define USE_DEADLINE_QOS to enable the deadline QoS policy
+* on the DataReader.
+*/
+
+#define USE_DEADLINE_QOS
 
 /*e \dref_Example_Config_UseSampleFilter
 * Define USE_SAMPLE_FILTER to filter samples
@@ -34,11 +41,8 @@
 struct Application
 {
     DDS_DomainParticipant *participant;
-    char topic_name[RTPS_PATHNAME_LEN_MAX + 1];
-    char type_name[RTPS_PATHNAME_LEN_MAX + 1];
     DDS_Long sleep_time;
     DDS_Long count;
-    DDS_Topic *topic;
 };
 
 extern void
@@ -46,8 +50,6 @@ Application_help(char *appname);
 
 extern struct Application*
 Application_create(
-    const char *local_participant_name,
-    const char *remote_participant_name,
     DDS_Long domain_id,
     char *udp_intf,
     const char *peer,

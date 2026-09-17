@@ -9,10 +9,6 @@
 #include "rh_sm/rh_sm_history.h"
 #include "netio/netio_udp.h"
 
-#include "ProximityDatatype.h"
-#include "ProximityDatatypePlugin.h"
-#include "ProximityDatatypeSupport.h"
-
 #include "ProximityDatatypeApplication.h"
 
 void
@@ -31,8 +27,6 @@ Application_help(char *appname)
 
 struct Application *
 Application_create(
-    const char *local_participant_name,
-    const char *remote_participant_name,
     DDS_Long domain_id,
     char *udp_intf,
     const char *peer,
@@ -50,8 +44,6 @@ Application_create(
     DPDE_DiscoveryPluginProperty_INITIALIZER;
     struct Application *application = NULL;
     const char *effective_peer = NULL;
-    (void)local_participant_name;
-    (void)remote_participant_name;
 
     /* Uncomment to increase verbosity level:
     OSAPI_Log_set_verbosity(OSAPI_LOG_VERBOSITY_WARNING);
@@ -276,37 +268,6 @@ Application_create(
     if (application->participant == NULL)
     {
         printf("failed to create participant\n");
-        goto done;
-    }
-
-    strncpy(application->type_name,
-    ProximityTypeTypeSupport_get_type_name(),
-    sizeof(application->type_name) - 1);
-    application->type_name[sizeof(application->type_name) - 1] = '\0';
-    retcode = ProximityTypeTypeSupport_register_type(
-        application->participant,
-        application->type_name);
-    if (retcode != DDS_RETCODE_OK)
-    {
-        printf("failed to register type: %s\n", application->type_name);
-        goto done;
-    }
-
-    snprintf(application->topic_name,
-    sizeof(application->topic_name),
-    "Example %s",
-    "ProximityType");
-
-    application->topic = DDS_DomainParticipant_create_topic(
-        application->participant,
-        application->topic_name,
-        application->type_name,
-        &DDS_TOPIC_QOS_DEFAULT,
-        NULL,
-        DDS_STATUS_MASK_NONE);
-    if (application->topic == NULL)
-    {
-        printf("topic == NULL\n");
         goto done;
     }
 

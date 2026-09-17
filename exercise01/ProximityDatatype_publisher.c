@@ -59,8 +59,6 @@ publisher_main_w_args(
     }
 
     application = Application_create(
-        "publisher",
-        "subscriber",
         domain_id,
         udp_intf,
         peer,
@@ -70,6 +68,28 @@ publisher_main_w_args(
     if (application == NULL)
     {
         printf("failed Application create\n");
+        goto done;
+    }
+
+    retcode = ProximityTypeTypeSupport_register_type(
+        application->participant,
+        ProximityTypeTypeSupport_get_type_name());
+    if (retcode != DDS_RETCODE_OK)
+    {
+        printf("failed to register ProximityType\n");
+        goto done;
+    }
+
+    DDS_Topic *topic = DDS_DomainParticipant_create_topic(
+        application->participant,
+        PROXIMITY_TOPIC,
+        ProximityTypeTypeSupport_get_type_name(),
+        &DDS_TOPIC_QOS_DEFAULT,
+        NULL,
+        DDS_STATUS_MASK_NONE);
+    if (topic == NULL)
+    {
+        printf("topic == NULL\n");
         goto done;
     }
 
@@ -84,24 +104,30 @@ publisher_main_w_args(
         goto done;
     }
 
+    /* add deadline policy - 1 second */
+    dw_qos.deadline.period.sec = 1;
+    dw_qos.deadline.period.nanosec = 0;
+
     #ifdef USE_RELIABLE_QOS
     dw_qos.reliability.kind = DDS_RELIABLE_RELIABILITY_QOS;
+    dw_qos.protocol.rtps_reliable_writer.heartbeat_period.sec = 0;
+    dw_qos.protocol.rtps_reliable_writer.heartbeat_period.nanosec = 250000000;
     #else
     dw_qos.reliability.kind = DDS_BEST_EFFORT_RELIABILITY_QOS;
     #endif
-    dw_qos.resource_limits.max_samples_per_instance = 32;
+    dw_qos.resource_limits.max_samples_per_instance = 1;
     dw_qos.resource_limits.max_instances = 2;
     dw_qos.resource_limits.max_samples = dw_qos.resource_limits.max_instances *
     dw_qos.resource_limits.max_samples_per_instance;
-    dw_qos.history.depth = 32;
-    dw_qos.protocol.rtps_reliable_writer.heartbeat_period.sec = 0;
-    dw_qos.protocol.rtps_reliable_writer.heartbeat_period.nanosec = 250000000;
+    /* DW history default is KEEP_LAST 1 */
+    /* dw_qos.history.depth = 32; */
+
 
     dw_listener.on_publication_matched = ProximityTypePublisher_on_publication_matched;
 
     datawriter = DDS_Publisher_create_datawriter(
         publisher,
-        application->topic,
+        topic,
         &dw_qos,
         &dw_listener,
         DDS_PUBLICATION_MATCHED_STATUS);

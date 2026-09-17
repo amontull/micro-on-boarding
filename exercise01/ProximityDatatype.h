@@ -7,8 +7,8 @@ For more information, type 'rtiddsgen -help' at a command shell
 or consult the RTI Data Distribution Service manual.
 */
 
-#ifndef ProximityDatatype_1543506597_h
-#define ProximityDatatype_1543506597_h
+#ifndef ProximityDatatype_1543506649_h
+#define ProximityDatatype_1543506649_h
 
 #ifndef rti_me_c_h
 #include "rti_me_c.h"
@@ -28,6 +28,8 @@ or consult the RTI Data Distribution Service manual.
 #ifdef __cplusplus
 extern "C" {
     #endif
+
+    #define PROXIMITY_TOPIC ("ProximityTopic")
 
     extern const char *ProximityTypeTYPENAME;
 

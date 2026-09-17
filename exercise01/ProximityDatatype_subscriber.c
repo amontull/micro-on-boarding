@@ -255,6 +255,20 @@ ProximityTypeSubscriber_on_data_available(
     #endif
 }
 
+static void
+ProximityTypeSubscriber_on_deadline_missed(
+    void *listener_data,
+    DDS_DataReader * reader,
+    const struct DDS_RequestedDeadlineMissedStatus *status)
+{
+    printf(
+        "ALERT: No sample received within the 2-second deadline.\n"
+        "  total missed deadlines: %ld\n"
+        "  new missed deadlines: %ld\n",
+        (long) status->total_count,
+        (long) status->total_count_change);
+}
+
 static int
 subscriber_main_w_args(
     DDS_Long domain_id,
@@ -277,8 +291,6 @@ subscriber_main_w_args(
     DDS_Long i;
 
     application = Application_create(
-        "subscriber",
-        "publisher",
         domain_id,
         udp_intf,
         peer,
@@ -288,6 +300,28 @@ subscriber_main_w_args(
     if (application == NULL)
     {
         printf("application cannot be created\n");
+        goto done;
+    }
+
+    retcode = ProximityTypeTypeSupport_register_type(
+        application->participant,
+        ProximityTypeTypeSupport_get_type_name());
+    if (retcode != DDS_RETCODE_OK)
+    {
+        printf("failed to register ProximityType\n");
+        goto done;
+    }
+
+    DDS_Topic *topic = DDS_DomainParticipant_create_topic(
+        application->participant,
+        PROXIMITY_TOPIC,
+        ProximityTypeTypeSupport_get_type_name(),
+        &DDS_TOPIC_QOS_DEFAULT,
+        NULL,
+        DDS_STATUS_MASK_NONE);
+    if (topic == NULL)
+    {
+        printf("topic == NULL\n");
         goto done;
     }
 
@@ -312,13 +346,21 @@ subscriber_main_w_args(
     dr_qos.resource_limits.max_instances = 2;
     #endif
 
-    dr_qos.resource_limits.max_samples_per_instance = 32;
+    dr_qos.resource_limits.max_samples_per_instance = 1;
     dr_qos.resource_limits.max_samples = dr_qos.resource_limits.max_instances *
     dr_qos.resource_limits.max_samples_per_instance;
     /* if there are more remote writers, you need to increase these limits */
     dr_qos.reader_resource_limits.max_remote_writers = 10;
     dr_qos.reader_resource_limits.max_remote_writers_per_instance = 10;
-    dr_qos.history.depth = 32;
+    /* DR history default is KEEP_LAST 1 */
+    /* dr_qos.history.depth = 32; */
+
+    #ifdef USE_DEADLINE_QOS
+    /* add deadline policy - 2 seconds */
+    dr_qos.deadline.period.sec = 2;
+    dr_qos.deadline.period.nanosec = 0;
+    dr_listener.on_requested_deadline_missed = ProximityTypeSubscriber_on_deadline_missed;
+    #endif
 
     /* Reliability QoS */
     #ifdef USE_RELIABLE_QOS
@@ -346,10 +388,10 @@ subscriber_main_w_args(
 
     datareader = DDS_Subscriber_create_datareader(
         subscriber,
-        DDS_Topic_as_topicdescription(application->topic),
+        DDS_Topic_as_topicdescription(topic),
         &dr_qos,
         &dr_listener,
-        DDS_DATA_AVAILABLE_STATUS | DDS_SUBSCRIPTION_MATCHED_STATUS);
+        DDS_DATA_AVAILABLE_STATUS | DDS_SUBSCRIPTION_MATCHED_STATUS | DDS_REQUESTED_DEADLINE_MISSED_STATUS);
 
     if (datareader == NULL)
     {

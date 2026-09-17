@@ -7,8 +7,8 @@ For more information, type 'rtiddsgen -help' at a command shell
 or consult the RTI Data Distribution Service manual.
 */
 
-#ifndef ProximityDatatypePlugin_1543506597_h
-#define ProximityDatatypePlugin_1543506597_h
+#ifndef ProximityDatatypePlugin_1543506649_h
+#define ProximityDatatypePlugin_1543506649_h
 
 #include "ProximityDatatype.h"
 
@@ -128,5 +128,5 @@ extern "C" {
 #define NDDSUSERDllExport
 #endif
 
-#endif /* ProximityDatatypePlugin_1543506597_h */
+#endif /* ProximityDatatypePlugin_1543506649_h */
 

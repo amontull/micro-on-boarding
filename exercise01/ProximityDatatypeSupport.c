@@ -10,6 +10,7 @@ or consult the RTI Data Distribution Service manual.
 #include "ProximityDatatypeSupport.h"
 
 /*** SOURCE_BEGIN ***/
+
 /* =========================================================================== */
 
 /* Requires */

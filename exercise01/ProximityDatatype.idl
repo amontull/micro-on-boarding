@@ -1,4 +1,4 @@
-
+const string<16> PROXIMITY_TOPIC = "ProximityTopic";
 
 
 struct ProximityType {
