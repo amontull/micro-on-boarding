@@ -1,6 +1,8 @@
 
 CMAKE_MINIMUM_REQUIRED(VERSION 3.12)
 
+set(RTIME_IDL_ADD_REGENERATE_TYPESUPPORT_RULE TRUE)
+
 function(SET_LIB_ORDER INPUT_LIST_VAR)
     # The target library order
     SET(TARGET_LIB_ORDER
@@ -142,10 +144,11 @@ SET(RTIDDSMAG "${RTIMEHOME}/rtiddsmag/scripts/rtiddsmag")
 
 SET_PROPERTY(GLOBAL PROPERTY RULE_MESSAGES OFF)
 
-SET(IDL_SOURCE_C ProximityDatatype.idl)
 
 SET(IDL_PATH ${CMAKE_CURRENT_SOURCE_DIR})
 SET(XML_PATH ${CMAKE_CURRENT_SOURCE_DIR})
+
+SET(IDL_SOURCE_C ${IDL_PATH}/ProximityDatatype.idl)
 
 SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/objs/${RTIME_TARGET_NAME})
 SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/objs/${RTIME_TARGET_NAME})
@@ -346,13 +349,13 @@ FOREACH(idl ${IDL_SOURCE_C})
 
         ADD_CUSTOM_COMMAND(OUTPUT ${IDL_GEN_FILE_C} ${IDL_GEN_FILE_H}
                            COMMAND ${COMMAND_PREFIX} ${RTIDDSGEN} -language C
-                                   -micro -verbosity 1 -update typefiles
-                                   -d ${CMAKE_CURRENT_SOURCE_DIR}
-                                   ${IDL_PATH}/${idl}
-                           DEPENDS ${IDL_PATH}/${idl}
+                                    -micro -verbosity 1 -update typefiles
+                                    -d ${CMAKE_CURRENT_SOURCE_DIR}
+                                    ${idl}
+                           DEPENDS ${idl}
                            COMMENT "Regeneration type support plugin from ${idl}"
                           )
-        SET_SOURCE_FILES_PROPERTIES(${IDLIDL_GEN_FILE_C_GEN_C} ${IDL_GEN_FILE_H} PROPERTIES GENERATED 1)
+        SET_SOURCE_FILES_PROPERTIES(${IDL_GEN_FILE_C} ${IDL_GEN_FILE_H} PROPERTIES GENERATED 1)
     ENDIF()
 ENDFOREACH()
 

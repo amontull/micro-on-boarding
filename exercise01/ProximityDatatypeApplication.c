@@ -43,7 +43,7 @@ Application_subscriber_help(char *appname)
 
 void Application_configure_periodic_writer_qos(
     struct DDS_DataWriterQos *qos,
-    const struct DDS_Time_t *const period)
+    const struct DDS_Duration_t *const deadline)
 {
     /* set default values for dw qos */
     *qos = (struct DDS_DataWriterQos) DDS_DataWriterQos_INITIALIZER;
@@ -55,8 +55,8 @@ void Application_configure_periodic_writer_qos(
     qos->history.depth = 1;
 #ifdef USE_DEADLINE_QOS
     /* The writer promises to update each instance at least every 100 ms. */
-    qos->deadline.period.sec = period->sec;
-    qos->deadline.period.nanosec = period->nanosec;
+    qos->deadline.period.sec = deadline->sec;
+    qos->deadline.period.nanosec = deadline->nanosec;
 #endif
     /* For an unkeyed topic, max_samples_per_instance == max_samples. */
     /* qos->resource_limits.max_instances = 1; */
@@ -68,7 +68,7 @@ void Application_configure_periodic_writer_qos(
 
 void Application_configure_periodic_reader_qos(
     struct DDS_DataReaderQos *qos,
-    const struct DDS_Time_t *const period)
+    const struct DDS_Duration_t *const deadline)
 {
     /* set default values for dw qos */
     *qos = (struct DDS_DataReaderQos) DDS_DataReaderQos_INITIALIZER;
@@ -81,9 +81,9 @@ void Application_configure_periodic_reader_qos(
 
 #ifdef USE_DEADLINE_QOS
     /* The writer promises to update each instance at least every 100 ms. */
-    printf("Configuring reader deadline period: %ld sec, %ld nanosec\n", (long)period->sec, (long)period->nanosec);
-    qos->deadline.period.sec = period->sec;
-    qos->deadline.period.nanosec = period->nanosec;
+    printf("Configuring reader deadline period: %ld sec, %ld nanosec\n", (long)deadline->sec, (long)deadline->nanosec);
+    qos->deadline.period.sec = deadline->sec;
+    qos->deadline.period.nanosec = deadline->nanosec;
 #endif
 
     qos->resource_limits.max_samples_per_instance = 1;
@@ -94,10 +94,10 @@ void Application_configure_periodic_reader_qos(
     qos->reader_resource_limits.max_remote_writers_per_instance = 10;
 }
 
-struct DDS_Time_t Application_milliseconds_to_time(
+struct DDS_Duration_t Application_milliseconds_to_time(
     DDS_Long milliseconds)
 {
-    struct DDS_Time_t time;
+    struct DDS_Duration_t time;
 
     if (milliseconds < 0)
     {

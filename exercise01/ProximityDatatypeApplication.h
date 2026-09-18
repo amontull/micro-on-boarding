@@ -61,13 +61,13 @@ Application_create(
 
 extern void Application_configure_periodic_writer_qos(
     struct DDS_DataWriterQos *writer_qos,
-    const struct DDS_Time_t *const period);
+    const struct DDS_Duration_t *const deadline);
 
 extern void Application_configure_periodic_reader_qos(
     struct DDS_DataReaderQos *reader_qos,
-    const struct DDS_Time_t *const period);
+    const struct DDS_Duration_t *const deadline);
 
-extern struct DDS_Time_t Application_milliseconds_to_time(
+extern struct DDS_Duration_t Application_milliseconds_to_time(
     DDS_Long milliseconds);
 
 #ifndef RTI_CERT

@@ -336,19 +336,8 @@ subscriber_main_w_args(
         goto done;
     }
 
-    /* Publisher sends samples with id = 0 or id = 1, so 2 instances maximum.
-    * But in case filtering is done, all samples with 'id = 0' are
-    * filtered so only one instance is needed.
-    */
-    #ifdef USE_SAMPLE_FILTER
-    dr_qos.resource_limits.max_instances = 1;
-    #else
-    dr_qos.resource_limits.max_instances = 2;
-    #endif
-
-    struct DDS_Time_t app_period;
-    app_period = Application_milliseconds_to_time(sleep_time);
-    Application_configure_periodic_reader_qos(&dr_qos, &app_period);
+    struct DDS_Duration_t deadline = {2, 0};
+    Application_configure_periodic_reader_qos(&dr_qos, &deadline);
 
     /* dr_qos.resource_limits.max_samples_per_instance = 1; */
     /*  dr_qos.resource_limits.max_samples = dr_qos.resource_limits.max_instances *

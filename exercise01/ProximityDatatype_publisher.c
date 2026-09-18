@@ -105,9 +105,9 @@ publisher_main_w_args(
         goto done;
     }
 
-    struct DDS_Time_t app_period;
-    app_period = Application_milliseconds_to_time(sleep_time);
-    Application_configure_periodic_writer_qos(&dw_qos, &app_period);
+    struct DDS_Duration_t deadline;
+    deadline = Application_milliseconds_to_time(sleep_time);
+    Application_configure_periodic_writer_qos(&dw_qos, &deadline);
 
     /* add deadline policy - 1 second */
     /* dw_qos.deadline.period.sec = 1; */
