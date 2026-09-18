@@ -1,8 +1,9 @@
-# Exercise 1. "Proximity Data" topic
+# Connext Micro Exercise - Sensor/Controller/Brake Application
 
-This project is a small RTI Connext Micro example that publishes and subscribes
-to a keyed `ProximityType` data type over UDP. The example is contained in
-[`exercise01`](exercise01/).
+This project is a small RTI Connext Micro application that publishes and
+subscribes to a keyed `ProximityType` data type over UDP. The project is built
+from the root directory; generated type-support files are kept at the root and
+application-specific sources are kept in [`src`](src/).
 
 The IDL defines one key field and one value field:
 
@@ -13,12 +14,12 @@ struct ProximityType {
 };
 ```
 
-The generated application contains two executables:
+The CMake project builds two executables:
 
-- `ProximityDatatype_publisher`
-- `ProximityDatatype_subscriber`
+- `ProximitySensor` publishes proximity samples.
+- `Controller` subscribes to proximity samples.
 
-They communicate on the DDS topic `Example ProximityType` using Connext
+They communicate on the DDS topic `ProximityTopic` using Connext
 Micro's dynamic participant and endpoint discovery (DPDE).
 
 
@@ -44,37 +45,34 @@ export RTIME_TARGET_NAME=x86_64leElfgcc13.3.0-Linux6
 `$RTIMEHOME/lib/`. Use the target supplied by your installation if it differs
 from the example above.
 
-### Generate the C Files
+### Generate Type Support
 
-The type and application files in `exercise01/` can be generated from the IDL
-with the Connext Micro templates:
+The type-support files at the repository root can be generated or updated from
+the IDL with `rtiddsgen`:
 
 ```bash
-cd exercise01
+cd /path/to/micro-on-boarding
 "$RTIMEHOME/rtiddsgen/scripts/rtiddsgen" \
-	-micro -language C -example ProximityDatatype.idl
+	-micro -language C -update typefiles -d . DatatypeDefinitions.idl
 ```
 
-This generates or updates the type support and example sources, including:
+This generates or updates:
 
-- `ProximityDatatype.c`, `.h`
-- `ProximityDatatypePlugin.c`, `.h`
-- `ProximityDatatypeSupport.c`, `.h`
-- `ProximityDatatypeApplication.c`, `.h`
-- `ProximityDatatype_publisher.c`
-- `ProximityDatatype_subscriber.c`
-- `CMakeLists.txt` and `README.txt`
+- `DatatypeDefinitions.c`, `.h`
+- `DatatypeDefinitionsPlugin.c`, `.h`
+- `DatatypeDefinitionsSupport.c`, `.h`
 
-The generated type-support sources are required by both applications. Do not
-edit generated files manually unless you intend to maintain those changes when
-the IDL is regenerated.
+The application and shared infrastructure sources in `src/` are maintained
+separately from the generated type support. Do not edit generated files
+manually unless you intend to maintain those changes when the IDL is
+regenerated.
 
 ## Build
 
 From the repository root:
 
 ```bash
-cmake -S exercise01 -B build \
+cmake -S . -B build \
 	-DRTIMEHOME="$RTIMEHOME" \
 	-DRTIME_TARGET_NAME="$RTIME_TARGET_NAME" \
 	-DCMAKE_BUILD_TYPE=Debug
@@ -84,7 +82,7 @@ cmake --build build --parallel
 The executables are written to:
 
 ```text
-exercise01/objs/x86_64leElfgcc13.3.0-Linux6/
+objs/x86_64leElfgcc13.3.0-Linux6/
 ```
 
 To let CMake regenerate the type-support files when the IDL changes, add:
@@ -103,11 +101,11 @@ usually more convenient while testing:
 
 ```bash
 # Terminal 1
-./exercise01/objs/x86_64leElfgcc13.3.0-Linux6/ProximityDatatype_subscriber \
+./objs/x86_64leElfgcc13.3.0-Linux6/Controller \
 	-domain 0 -udp_intf lo -peer 127.0.0.1
 
 # Terminal 2
-./exercise01/objs/x86_64leElfgcc13.3.0-Linux6/ProximityDatatype_publisher \
+./objs/x86_64leElfgcc13.3.0-Linux6/ProximitySensor \
 	-domain 0 -udp_intf lo -peer 127.0.0.1 -count 10 -sleep 1000 \
 	-sensorName ProximitySensor
 ```
@@ -131,13 +129,14 @@ subscriber does not accept `-sensorName` because it does not create samples.
 ## Subscribe from Admin Console
 
 Convert the IDL to XML so Admin Console can decode the samples. Run this from
-`exercise01`:
+the repository root:
 
 ```bash
-rtiddsgen -convertToXml ProximityDatatype.idl
+"$RTIMEHOME/rtiddsgen/scripts/rtiddsgen" \
+	-convertToXml DatatypeDefinitions.idl
 ```
 
-This creates or updates [`ProximityDatatype.xml`](exercise01/ProximityDatatype.xml),
+This creates or updates [`DatatypeDefinitions.xml`](DatatypeDefinitions.xml),
 which describes `ProximityType`. It does not create the DDS topic; the running
 publisher creates `ProximityTopic`.
 
@@ -146,13 +145,13 @@ In Admin Console:
 1. Start the publisher on DDS domain `0`:
 
 	```bash
-	./objs/x86_64leElfgcc13.3.0-Linux6/ProximityDatatype_publisher \
+	./objs/x86_64leElfgcc13.3.0-Linux6/ProximitySensor \
 		-domain 0 -udp_intf lo -peer 127.0.0.1 -count 10 -sensorName "MySensor"
 	```
 
 2. Join or add DDS domain `0` in the DDS Logical View.
 3. Locate `ProximityTopic` and choose **Subscribe**.
-4. Load `exercise01/ProximityDatatype.xml`, select `ProximityType`, and create
+4. Load `DatatypeDefinitions.xml`, select `ProximityType`, and create
 	the subscription.
 5. Open **Topic Data** or **Sample Inspector** to view `name` and `proximity`.
 
@@ -165,13 +164,13 @@ traffic through the firewall.
 
 | Path | Purpose |
 | --- | --- |
-| `exercise01/ProximityDatatype.idl` | DDS data type definition |
-| `exercise01/ProximityDatatype_publisher.c` | Publisher and DataWriter logic |
-| `exercise01/ProximityDatatype_subscriber.c` | Subscriber and DataReader logic |
-| `exercise01/ProximityDatatypeApplication.c` | Participant, topic, UDP, and discovery setup |
-| `exercise01/ProximityDatatype*.c/.h` | Generated type support |
-| `exercise01/CMakeLists.txt` | CMake build and optional IDL regeneration rules |
-| `exercise01/README.txt` | Generated example-specific reference |
+| `DatatypeDefinitions.idl` | DDS data type and topic constant definition |
+| `DatatypeDefinitions*.c/.h` | Generated type support |
+| `src/ProximitySensor.c` | Publisher and DataWriter logic |
+| `src/Controller.c` | Subscriber and DataReader logic |
+| `src/DatatypeDefinitionsApplication.c/.h` | Participant, UDP, discovery, and shared QoS setup |
+| `CMakeLists.txt` | CMake build and optional IDL regeneration rules |
+| `DatatypeDefinitions.xml` | XML type description for Admin Console |
 
 ## Troubleshooting
 
@@ -183,8 +182,8 @@ traffic through the firewall.
 	`-udp_intf` on systems that use names such as `ens160` or `wlan0`.
 - Use `-count` to stop the publisher automatically; without it, publishing
 	continues indefinitely.
-- Run `./.../ProximityDatatype_publisher -h` or
-	`./.../ProximityDatatype_subscriber -h` to display the built-in help.
+- Run `./.../ProximitySensor -h` or `./.../Controller -h` to display the
+	built-in help.
 
 ## Change log
 
@@ -203,12 +202,12 @@ The following changes have been applied to Exercise 1:
 - Removed the unused `local_participant_name` and `remote_participant_name`
 	parameters from `Application_create` and updated both applications to use
 	the simplified API.
-- Moved `ProximityType` registration and `Example ProximityType` topic
+- Moved `ProximityType` registration and `ProximityTopic` topic
 	creation from the shared application code into the publisher and subscriber.
 	This keeps type and topic ownership local to the applications that use
 	them, which allows larger systems to define separate application-specific
 	topics and endpoints.
 
-For the full generated build notes and platform-specific commands, see
-[`exercise01/README.txt`](exercise01/README.txt).
+For generated build notes and platform-specific commands, see
+[`README.txt`](README.txt).
 
