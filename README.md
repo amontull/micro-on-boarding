@@ -1,6 +1,4 @@
-# Connext Micro C Publish/Subscribe Exercises
-
-## Exercise 1. "Proximity Data" topic
+# Exercise 1. "Proximity Data" topic
 
 This project is a small RTI Connext Micro example that publishes and subscribes
 to a keyed `ProximityType` data type over UDP. The example is contained in
@@ -24,7 +22,7 @@ They communicate on the DDS topic `Example ProximityType` using Connext
 Micro's dynamic participant and endpoint discovery (DPDE).
 
 
-### Requirements
+## Requirements
 
 - RTI Connext Micro 4.3.0
 - A supported C compiler
@@ -110,27 +108,60 @@ usually more convenient while testing:
 
 # Terminal 2
 ./exercise01/objs/x86_64leElfgcc13.3.0-Linux6/ProximityDatatype_publisher \
-	-domain 0 -udp_intf lo -peer 127.0.0.1 -count 10 -sleep 1000
+	-domain 0 -udp_intf lo -peer 127.0.0.1 -count 10 -sleep 1000 \
+	-sensorName ProximitySensor
 ```
 
-The command-line options are:
+The publisher options are:
 
 | Option | Meaning | Default |
 | --- | --- | --- |
 | `-domain <id>` | DDS domain ID | `0` |
 | `-udp_intf <interface>` | UDP network interface | platform fallback |
 | `-peer <address>` | Initial discovery peer | loopback |
-| `-count <count>` | Number of samples to publish | `0`, forever |
-| `-sleep <ms>` | Delay between published samples | `1000` |
+| `-count <count>` | Number of samples to publish | `300` |
+| `-sleep <ms>` | Delay between published samples | `100` |
+| `-sensorName <name>` | Key value assigned to each published sample | `ProximitySensor` |
 | `-h` | Show help | |
 
-For communication between two hosts, replace `lo` with the actual interface,
-such as `eth0` or `ens160`, and replace `127.0.0.1` with a reachable peer
-address. Both processes must use the same domain ID and compatible discovery
-settings. Confirm that UDP traffic and, where applicable, multicast traffic
-are allowed by the host and network firewall.
+The subscriber accepts the shared connection options plus `-count` and
+`-sleep`. Its defaults are `0` receive iterations and a `1000` ms delay. The
+subscriber does not accept `-sensorName` because it does not create samples.
 
-### Project Layout
+## Subscribe from Admin Console
+
+Convert the IDL to XML so Admin Console can decode the samples. Run this from
+`exercise01`:
+
+```bash
+rtiddsgen -convertToXml ProximityDatatype.idl
+```
+
+This creates or updates [`ProximityDatatype.xml`](exercise01/ProximityDatatype.xml),
+which describes `ProximityType`. It does not create the DDS topic; the running
+publisher creates `ProximityTopic`.
+
+In Admin Console:
+
+1. Start the publisher on DDS domain `0`:
+
+	```bash
+	./objs/x86_64leElfgcc13.3.0-Linux6/ProximityDatatype_publisher \
+		-domain 0 -udp_intf lo -peer 127.0.0.1 -count 10 -sensorName "MySensor"
+	```
+
+2. Join or add DDS domain `0` in the DDS Logical View.
+3. Locate `ProximityTopic` and choose **Subscribe**.
+4. Load `exercise01/ProximityDatatype.xml`, select `ProximityType`, and create
+	the subscription.
+5. Open **Topic Data** or **Sample Inspector** to view `name` and `proximity`.
+
+Use best-effort reliability in Admin Console, with a requested deadline of one
+second or longer. For a different host, replace `lo` with the publisher's real
+interface and `127.0.0.1` with a reachable discovery peer; allow DDS/RTPS UDP
+traffic through the firewall.
+
+## Project Layout
 
 | Path | Purpose |
 | --- | --- |
@@ -142,7 +173,7 @@ are allowed by the host and network firewall.
 | `exercise01/CMakeLists.txt` | CMake build and optional IDL regeneration rules |
 | `exercise01/README.txt` | Generated example-specific reference |
 
-### Troubleshooting
+## Troubleshooting
 
 - If CMake cannot find Connext Micro, check `RTIMEHOME` and
 	`RTIME_TARGET_NAME`.
@@ -155,7 +186,7 @@ are allowed by the host and network firewall.
 - Run `./.../ProximityDatatype_publisher -h` or
 	`./.../ProximityDatatype_subscriber -h` to display the built-in help.
 
-### Change log
+## Change log
 
 The following changes have been applied to Exercise 1:
 

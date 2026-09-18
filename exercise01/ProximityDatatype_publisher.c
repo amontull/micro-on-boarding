@@ -38,7 +38,8 @@ publisher_main_w_args(
     char *udp_intf,
     const char *peer,
     DDS_Long sleep_time,
-    DDS_Long count)
+    DDS_Long count,
+    const char *sensor_name)
 {
     DDS_Publisher *publisher;
     DDS_DataWriter *datawriter;
@@ -150,7 +151,9 @@ publisher_main_w_args(
     for (i = 0; (application->count <= 0) || (i < application->count); ++i)
     {
 
-        /* TODO set sample attributes here */
+        /* set sample attributes here */
+        sample->proximity = (float)i;
+        sample->name = (DDS_String)sensor_name;
 
         retcode = ProximityTypeDataWriter_write(
             hw_datawriter,
@@ -205,8 +208,9 @@ main(int argc, char **argv)
     DDS_Long domain_id = 0;
     const char *peer = NULL;
     char *udp_intf = NULL;
-    DDS_Long sleep_time = 1000;
-    DDS_Long count = 0;
+    DDS_Long sleep_time = 100;
+    DDS_Long count = 300;
+    const char *sensor_name = "ProximitySensor";
 
     for (i = 1; i < argc; ++i)
     {
@@ -260,9 +264,19 @@ main(int argc, char **argv)
             }
             count = (DDS_Long)strtol(argv[i], NULL, 0);
         }
+        else if (!strcmp(argv[i], "-sensorName"))
+        {
+            ++i;
+            if (i == argc)
+            {
+                printf("-sensorName <name>\n");
+                return -1;
+            }
+            sensor_name = argv[i];
+        }
         else if (!strcmp(argv[i], "-h"))
         {
-            Application_help(argv[0]);
+            Application_publisher_help(argv[0]);
             return 0;
         }
         else
@@ -272,7 +286,8 @@ main(int argc, char **argv)
         }
     }
 
-    return publisher_main_w_args(domain_id, udp_intf, peer, sleep_time, count);
+    return publisher_main_w_args(
+        domain_id, udp_intf, peer, sleep_time, count, sensor_name);
 }
 #elif defined(RTI_VXWORKS)
 int
@@ -284,7 +299,9 @@ publisher_main(void)
     char *udp_intf = NULL;
     DDS_Long sleep_time = 1000;
     DDS_Long count = 0;
+    const char *sensor_name = "ProximitySensor";
 
-    return publisher_main_w_args(domain_id, udp_intf, peer, sleep_time, count);
+    return publisher_main_w_args(
+        domain_id, udp_intf, peer, sleep_time, count, sensor_name);
 }
 #endif

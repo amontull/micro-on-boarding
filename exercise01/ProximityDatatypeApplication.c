@@ -12,7 +12,7 @@
 #include "ProximityDatatypeApplication.h"
 
 void
-Application_help(char *appname)
+Application_publisher_help(char *appname)
 {
     printf("%s [options]\n", appname);
     printf("options:\n");
@@ -20,8 +20,23 @@ Application_help(char *appname)
     printf("-domain <id>            - DomainId (default: 0)\n");
     printf("-udp_intf <intf>        - udp interface (no default)\n");
     printf("-peer <address>         - peer address (no default)\n");
-    printf("-count <count>          - count (default 0. Runs forever.)\n");
-    printf("-sleep <ms>             - sleep between sends (default 1s)\n");
+    printf("-count <count>          - samples to publish (default: 300)\n");
+    printf("-sleep <ms>             - delay between samples (default: 100)\n");
+    printf("-sensorName <name>      - sensor name (default ProximitySensor)\n");
+    printf("\n");
+}
+
+void
+Application_subscriber_help(char *appname)
+{
+    printf("%s [options]\n", appname);
+    printf("options:\n");
+    printf("-h                      - This text\n");
+    printf("-domain <id>            - DomainId (default: 0)\n");
+    printf("-udp_intf <intf>        - udp interface (no default)\n");
+    printf("-peer <address>         - peer address (no default)\n");
+    printf("-count <count>          - receive iterations (default: 0)\n");
+    printf("-sleep <ms>             - delay between checks (default: 1000)\n");
     printf("\n");
 }
 
@@ -254,9 +269,9 @@ Application_create(
     dp_qos.resource_limits.local_type_allocation = 1;
     dp_qos.resource_limits.local_reader_allocation = 1;
     dp_qos.resource_limits.local_writer_allocation = 1;
-    dp_qos.resource_limits.remote_participant_allocation = 8;
-    dp_qos.resource_limits.remote_reader_allocation = 8;
-    dp_qos.resource_limits.remote_writer_allocation = 8;
+    dp_qos.resource_limits.remote_participant_allocation = 5;
+    dp_qos.resource_limits.remote_reader_allocation = 25;
+    dp_qos.resource_limits.remote_writer_allocation = 25;
 
     application->participant = DDS_DomainParticipantFactory_create_participant(
         factory,

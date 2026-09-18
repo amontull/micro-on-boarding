@@ -46,7 +46,10 @@ struct Application
 };
 
 extern void
-Application_help(char *appname);
+Application_publisher_help(char *appname);
+
+extern void
+Application_subscriber_help(char *appname);
 
 extern struct Application*
 Application_create(

@@ -230,7 +230,7 @@ ProximityTypeSubscriber_on_data_available(
         {
             sample = ProximityTypeSeq_get_reference(&sample_seq, i);
 
-            printf("Valid sample received\n");
+            printf("Proximity sensor %s detects: %f m\n", sample->name, sample->proximity);
 
             *total_samples += 1;
 
@@ -510,7 +510,7 @@ main(int argc, char **argv)
         }
         else if (!strcmp(argv[i], "-h"))
         {
-            Application_help(argv[0]);
+            Application_subscriber_help(argv[0]);
             return 0;
         }
         else
