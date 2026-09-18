@@ -105,21 +105,26 @@ publisher_main_w_args(
         goto done;
     }
 
-    /* add deadline policy - 1 second */
-    dw_qos.deadline.period.sec = 1;
-    dw_qos.deadline.period.nanosec = 0;
+    struct DDS_Time_t app_period;
+    app_period = Application_milliseconds_to_time(sleep_time);
+    Application_configure_periodic_writer_qos(&dw_qos, &app_period);
 
-    #ifdef USE_RELIABLE_QOS
-    dw_qos.reliability.kind = DDS_RELIABLE_RELIABILITY_QOS;
-    dw_qos.protocol.rtps_reliable_writer.heartbeat_period.sec = 0;
-    dw_qos.protocol.rtps_reliable_writer.heartbeat_period.nanosec = 250000000;
-    #else
-    dw_qos.reliability.kind = DDS_BEST_EFFORT_RELIABILITY_QOS;
-    #endif
-    dw_qos.resource_limits.max_samples_per_instance = 1;
-    dw_qos.resource_limits.max_instances = 2;
-    dw_qos.resource_limits.max_samples = dw_qos.resource_limits.max_instances *
-    dw_qos.resource_limits.max_samples_per_instance;
+    /* add deadline policy - 1 second */
+    /* dw_qos.deadline.period.sec = 1; */
+    /* dw_qos.deadline.period.nanosec = 0; */
+
+    /* #ifdef USE_RELIABLE_QOS */
+    /* dw_qos.reliability.kind = DDS_RELIABLE_RELIABILITY_QOS; */
+    /* dw_qos.protocol.rtps_reliable_writer.heartbeat_period.sec = 0; */
+    /* dw_qos.protocol.rtps_reliable_writer.heartbeat_period.nanosec = 250000000; */
+    /* #else */
+    /* dw_qos.reliability.kind = DDS_BEST_EFFORT_RELIABILITY_QOS; */
+    /* #endif */
+    /* dw_qos.resource_limits.max_samples_per_instance = 1; */
+    /* dw_qos.resource_limits.max_instances = 2; */
+    /* dw_qos.resource_limits.max_samples = dw_qos.resource_limits.max_instances *
+        dw_qos.resource_limits.max_samples_per_instance; */
+
     /* DW history default is KEEP_LAST 1 */
     /* dw_qos.history.depth = 32; */
 

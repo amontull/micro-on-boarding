@@ -59,6 +59,17 @@ Application_create(
     DDS_Long sleep_time,
     DDS_Long count);
 
+extern void Application_configure_periodic_writer_qos(
+    struct DDS_DataWriterQos *writer_qos,
+    const struct DDS_Time_t *const period);
+
+extern void Application_configure_periodic_reader_qos(
+    struct DDS_DataReaderQos *reader_qos,
+    const struct DDS_Time_t *const period);
+
+extern struct DDS_Time_t Application_milliseconds_to_time(
+    DDS_Long milliseconds);
+
 #ifndef RTI_CERT
 extern void
 Application_delete(struct Application *application);

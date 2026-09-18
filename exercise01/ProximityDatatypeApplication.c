@@ -40,6 +40,76 @@ Application_subscriber_help(char *appname)
     printf("\n");
 }
 
+
+void Application_configure_periodic_writer_qos(
+    struct DDS_DataWriterQos *qos,
+    const struct DDS_Time_t *const period)
+{
+    /* set default values for dw qos */
+    *qos = (struct DDS_DataWriterQos) DDS_DataWriterQos_INITIALIZER;
+
+    qos->reliability.kind = DDS_BEST_EFFORT_RELIABILITY_QOS;
+
+    /* this is already the default initialization */
+    qos->history.kind = DDS_KEEP_LAST_HISTORY_QOS;
+    qos->history.depth = 1;
+#ifdef USE_DEADLINE_QOS
+    /* The writer promises to update each instance at least every 100 ms. */
+    qos->deadline.period.sec = period->sec;
+    qos->deadline.period.nanosec = period->nanosec;
+#endif
+    /* For an unkeyed topic, max_samples_per_instance == max_samples. */
+    /* qos->resource_limits.max_instances = 1; */
+    qos->resource_limits.max_samples_per_instance = 1;
+    qos->resource_limits.max_samples = qos->resource_limits.max_instances *
+        qos->resource_limits.max_samples_per_instance;
+}
+
+
+void Application_configure_periodic_reader_qos(
+    struct DDS_DataReaderQos *qos,
+    const struct DDS_Time_t *const period)
+{
+    /* set default values for dw qos */
+    *qos = (struct DDS_DataReaderQos) DDS_DataReaderQos_INITIALIZER;
+
+    qos->reliability.kind = DDS_BEST_EFFORT_RELIABILITY_QOS;
+
+    /* --- this is already the default initialization ---*/
+    qos->history.kind = DDS_KEEP_LAST_HISTORY_QOS;
+    qos->history.depth = 1;
+
+#ifdef USE_DEADLINE_QOS
+    /* The writer promises to update each instance at least every 100 ms. */
+    printf("Configuring reader deadline period: %ld sec, %ld nanosec\n", (long)period->sec, (long)period->nanosec);
+    qos->deadline.period.sec = period->sec;
+    qos->deadline.period.nanosec = period->nanosec;
+#endif
+
+    qos->resource_limits.max_samples_per_instance = 1;
+    qos->resource_limits.max_samples = qos->resource_limits.max_instances *
+        qos->resource_limits.max_samples_per_instance;
+    /* if there are more remote writers, you need to increase these limits */
+    qos->reader_resource_limits.max_remote_writers = 10;
+    qos->reader_resource_limits.max_remote_writers_per_instance = 10;
+}
+
+struct DDS_Time_t Application_milliseconds_to_time(
+    DDS_Long milliseconds)
+{
+    struct DDS_Time_t time;
+
+    if (milliseconds < 0)
+    {
+        milliseconds = 0;
+    }
+
+    time.sec = milliseconds / 1000;
+    time.nanosec = (DDS_UnsignedLong)(milliseconds % 1000) * 1000000U;
+
+    return time;
+}
+
 struct Application *
 Application_create(
     DDS_Long domain_id,

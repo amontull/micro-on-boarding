@@ -346,29 +346,34 @@ subscriber_main_w_args(
     dr_qos.resource_limits.max_instances = 2;
     #endif
 
-    dr_qos.resource_limits.max_samples_per_instance = 1;
-    dr_qos.resource_limits.max_samples = dr_qos.resource_limits.max_instances *
-    dr_qos.resource_limits.max_samples_per_instance;
+    struct DDS_Time_t app_period;
+    app_period = Application_milliseconds_to_time(sleep_time);
+    Application_configure_periodic_reader_qos(&dr_qos, &app_period);
+
+    /* dr_qos.resource_limits.max_samples_per_instance = 1; */
+    /*  dr_qos.resource_limits.max_samples = dr_qos.resource_limits.max_instances *
+    dr_qos.resource_limits.max_samples_per_instance; */
     /* if there are more remote writers, you need to increase these limits */
-    dr_qos.reader_resource_limits.max_remote_writers = 10;
-    dr_qos.reader_resource_limits.max_remote_writers_per_instance = 10;
+    /* dr_qos.reader_resource_limits.max_remote_writers = 10; */
+    /* dr_qos.reader_resource_limits.max_remote_writers_per_instance = 10; */
     /* DR history default is KEEP_LAST 1 */
     /* dr_qos.history.depth = 32; */
 
     #ifdef USE_DEADLINE_QOS
     /* add deadline policy - 2 seconds */
-    dr_qos.deadline.period.sec = 2;
-    dr_qos.deadline.period.nanosec = 0;
+    /* dr_qos.deadline.period.sec = 2; */
+    /* dr_qos.deadline.period.nanosec = 0; */
     dr_listener.on_requested_deadline_missed = ProximityTypeSubscriber_on_deadline_missed;
     #endif
 
     /* Reliability QoS */
+    /*
     #ifdef USE_RELIABLE_QOS
     dr_qos.reliability.kind = DDS_RELIABLE_RELIABILITY_QOS;
     #else
     dr_qos.reliability.kind = DDS_BEST_EFFORT_RELIABILITY_QOS;
     #endif
-
+    */
     #ifdef USE_SAMPLE_FILTER
     /* choose one callback to enable */
     #ifdef FILTER_ON_DESERIALIZE
