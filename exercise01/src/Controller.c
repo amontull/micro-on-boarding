@@ -7,11 +7,11 @@
 #include "wh_sm/wh_sm_history.h"
 #include "rh_sm/rh_sm_history.h"
 
-#include "ProximityDatatype.h"
-#include "ProximityDatatypeSupport.h"
-#include "ProximityDatatypePlugin.h"
+#include "DatatypeDefinitions.h"
+#include "DatatypeDefinitionsSupport.h"
+#include "DatatypeDefinitionsPlugin.h"
 
-#include "ProximityDatatypeApplication.h"
+#include "DatatypeDefinitionsApplication.h"
 
 #ifdef USE_SAMPLE_FILTER
 #ifdef FILTER_ON_DESERIALIZE

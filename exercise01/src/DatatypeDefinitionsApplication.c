@@ -9,7 +9,7 @@
 #include "rh_sm/rh_sm_history.h"
 #include "netio/netio_udp.h"
 
-#include "ProximityDatatypeApplication.h"
+#include "DatatypeDefinitionsApplication.h"
 
 void
 Application_publisher_help(char *appname)

@@ -148,7 +148,7 @@ SET_PROPERTY(GLOBAL PROPERTY RULE_MESSAGES OFF)
 SET(IDL_PATH ${CMAKE_CURRENT_SOURCE_DIR})
 SET(XML_PATH ${CMAKE_CURRENT_SOURCE_DIR})
 
-SET(IDL_SOURCE_C ${IDL_PATH}/ProximityDatatype.idl)
+SET(IDL_SOURCE_C ${IDL_PATH}/DatatypeDefinitions.idl)
 
 SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/objs/${RTIME_TARGET_NAME})
 SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/objs/${RTIME_TARGET_NAME})
@@ -489,26 +489,26 @@ ENDIF()
 
 SET_LIB_ORDER(MICRO_C_LIBS)
 
-ADD_EXECUTABLE(ProximityDatatype_publisher
-               ${CMAKE_CURRENT_SOURCE_DIR}/ProximityDatatype_publisher.${SOURCE_EXTENSION}
-               ${CMAKE_CURRENT_SOURCE_DIR}/ProximityDatatypeApplication.${SOURCE_EXTENSION}
-               ${CMAKE_CURRENT_SOURCE_DIR}/ProximityDatatypeApplication.h
+ADD_EXECUTABLE(ProximitySensor
+               ${CMAKE_CURRENT_SOURCE_DIR}/src/ProximitySensor.${SOURCE_EXTENSION}
+               ${CMAKE_CURRENT_SOURCE_DIR}/src/DatatypeDefinitionsApplication.${SOURCE_EXTENSION}
+               ${CMAKE_CURRENT_SOURCE_DIR}/src/DatatypeDefinitionsApplication.h
                                              ${IDL_GEN_C} ${IDL_GEN_H} ${APP_GEN_C} ${APP_GEN_H})
 
-ADD_EXECUTABLE(ProximityDatatype_subscriber
-               ${CMAKE_CURRENT_SOURCE_DIR}/ProximityDatatype_subscriber.${SOURCE_EXTENSION}
-               ${CMAKE_CURRENT_SOURCE_DIR}/ProximityDatatypeApplication.${SOURCE_EXTENSION}
-               ${CMAKE_CURRENT_SOURCE_DIR}/ProximityDatatypeApplication.h
+ADD_EXECUTABLE(Controller
+               ${CMAKE_CURRENT_SOURCE_DIR}/src/Controller.${SOURCE_EXTENSION}
+               ${CMAKE_CURRENT_SOURCE_DIR}/src/DatatypeDefinitionsApplication.${SOURCE_EXTENSION}
+               ${CMAKE_CURRENT_SOURCE_DIR}/src/DatatypeDefinitionsApplication.h
                                              ${IDL_GEN_C} ${IDL_GEN_H} ${APP_GEN_C} ${APP_GEN_H})
 
-TARGET_LINK_LIBRARIES(ProximityDatatype_publisher
+TARGET_LINK_LIBRARIES(ProximitySensor
         ${MICRO_C_LIBS}
         ${XML_LIBS}
         ${SSL_LIBS}
         ${PLATFORM_LIBS}
 )
 
-TARGET_LINK_LIBRARIES(ProximityDatatype_subscriber
+TARGET_LINK_LIBRARIES(Controller
         ${MICRO_C_LIBS}
         ${XML_LIBS}
         ${SSL_LIBS}

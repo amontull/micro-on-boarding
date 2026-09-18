@@ -1,7 +1,0 @@
-const string<16> PROXIMITY_TOPIC = "ProximityTopic";
-
-
-struct ProximityType {
-    @key string<16> name;
-    float proximity;
-};
