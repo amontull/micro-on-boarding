@@ -180,11 +180,11 @@ ProximityTypeSubscriber_on_subscription_matched(
 
     if (status->current_count_change > 0)
     {
-        printf("Matched a publisher\n");
+        printf("Matched a proximity topic publisher\n");
     }
     else if (status->current_count_change < 0)
     {
-        printf("Unmatched a publisher\n");
+        printf("Unmatched a proximity topic publisher\n");
     }
 }
 
@@ -204,7 +204,7 @@ ProximityTypeSubscriber_on_data_available(
     DDS_SEQUENCE_INITIALIZER;
 
     DDS_Long i;
-    DDS_Long *total_samples = (DDS_Long*) listener_data;
+    DDS_Long *proximity_total_samples = (DDS_Long*) listener_data;
 
     retcode = ProximityTypeDataReader_take(
         hw_reader,
@@ -232,7 +232,7 @@ ProximityTypeSubscriber_on_data_available(
 
             printf("Proximity sensor %s detects: %f m\n", sample->name, sample->proximity);
 
-            *total_samples += 1;
+            *proximity_total_samples += 1;
 
             /* TODO read and process sample attributes here */
             (void)sample;
@@ -269,6 +269,91 @@ ProximityTypeSubscriber_on_deadline_missed(
         (long) status->total_count_change);
 }
 
+
+static void
+DeviceStatusTypeSubscriber_on_subscription_matched(
+    void *listener_data,
+    DDS_DataReader *reader,
+    const struct DDS_SubscriptionMatchedStatus *status)
+{
+    (void)listener_data;
+    (void)reader;
+
+    if (status->current_count_change > 0)
+    {
+        printf("Matched a device status publisher\n");
+    }
+    else if (status->current_count_change < 0)
+    {
+        printf("Unmatched a device status publisher\n");
+    }
+}
+
+static void
+DeviceStatusTypeSubscriber_on_data_available(
+    void *listener_data,
+    DDS_DataReader * reader)
+{
+    DeviceStatusDataReader *hw_reader = DeviceStatusDataReader_narrow(reader);
+    DDS_ReturnCode_t retcode;
+    struct DDS_SampleInfo *sample_info = NULL;
+    struct DeviceStatusSeq sample_seq = DDS_SEQUENCE_INITIALIZER;
+    struct DDS_SampleInfoSeq info_seq = DDS_SEQUENCE_INITIALIZER;
+
+    retcode = DeviceStatusDataReader_take(
+        hw_reader,
+        &sample_seq,
+        &info_seq,
+        DDS_LENGTH_UNLIMITED,
+        DDS_ANY_SAMPLE_STATE,
+        DDS_ANY_VIEW_STATE,
+        DDS_ANY_INSTANCE_STATE);
+
+    DDS_Long i;
+    DDS_Long *device_status_total_samples = (DDS_Long*) listener_data;
+
+    struct DeviceStatus *sample = NULL;
+
+    if (retcode != DDS_RETCODE_OK)
+    {
+        printf("failed to take data, retcode(%d)\n", retcode);
+        goto done;
+    }
+
+    /* Print each valid sample taken */
+    for (i = 0; i < DeviceStatusSeq_get_length(&sample_seq); ++i)
+    {
+        sample_info = DDS_SampleInfoSeq_get_reference(&info_seq, i);
+
+        if (sample_info->valid_data)
+        {
+            sample = DeviceStatusSeq_get_reference(&sample_seq, i);
+
+            printf("Device %s detected: %u m\n", sample->deviceId, sample->deviceKind);
+
+            *device_status_total_samples += 1;
+
+            /* TODO read and process sample attributes here */
+            (void)sample;
+
+        }
+        else
+        {
+            printf("\nSample received\n\tINVALID DATA\n");
+        }
+    }
+
+    DeviceStatusDataReader_return_loan(hw_reader, &sample_seq, &info_seq);
+
+    done:
+    #ifndef RTI_CERT
+    DeviceStatusSeq_finalize(&sample_seq);
+    DDS_SampleInfoSeq_finalize(&info_seq);
+    #else
+    return;
+    #endif
+}
+
 static int
 subscriber_main_w_args(
     DDS_Long domain_id,
@@ -278,19 +363,24 @@ subscriber_main_w_args(
     DDS_Long count)
 {
     DDS_Subscriber *subscriber;
-    DDS_DataReader *datareader;
+    DDS_DataReader *proximity_dr;
+    DDS_DataReader *device_status_dr;
     struct DDS_DataReaderQos dr_qos = DDS_DataReaderQos_INITIALIZER;
     DDS_ReturnCode_t retcode;
     struct Application *application;
 
-    struct DDS_DataReaderListener dr_listener =
+    struct DDS_DataReaderListener proximity_dr_listener =
+    DDS_DataReaderListener_INITIALIZER;
+    struct DDS_DataReaderListener device_status_dr_listener =
     DDS_DataReaderListener_INITIALIZER;
 
     int ret_value = -1;
-    DDS_Long total_samples = 0;
+    DDS_Long proximity_total_samples = 0;
+    DDS_Long device_status_total_samples = 0;
     DDS_Long i;
 
     application = Application_create(
+        "Controller",
         domain_id,
         udp_intf,
         peer,
@@ -303,6 +393,15 @@ subscriber_main_w_args(
         goto done;
     }
 
+    retcode = DeviceStatusTypeSupport_register_type(
+        application->participant,
+        DeviceStatusTypeSupport_get_type_name());
+    if (retcode != DDS_RETCODE_OK)
+    {
+        printf("failed to register DeviceStatus\n");
+        goto done;
+    }
+
     retcode = ProximityTypeTypeSupport_register_type(
         application->participant,
         ProximityTypeTypeSupport_get_type_name());
@@ -312,16 +411,29 @@ subscriber_main_w_args(
         goto done;
     }
 
-    DDS_Topic *topic = DDS_DomainParticipant_create_topic(
+    DDS_Topic *proximity_topic = DDS_DomainParticipant_create_topic(
         application->participant,
         PROXIMITY_TOPIC,
         ProximityTypeTypeSupport_get_type_name(),
         &DDS_TOPIC_QOS_DEFAULT,
         NULL,
         DDS_STATUS_MASK_NONE);
-    if (topic == NULL)
+    if (proximity_topic == NULL)
     {
         printf("topic == NULL\n");
+        goto done;
+    }
+
+    DDS_Topic *device_status_topic = DDS_DomainParticipant_create_topic(
+        application->participant,
+        DEVICE_STATUS_TOPIC,
+        DeviceStatusTypeSupport_get_type_name(),
+        &DDS_TOPIC_QOS_DEFAULT,
+        NULL,
+        DDS_STATUS_MASK_NONE);
+    if (device_status_topic == NULL)
+    {
+        printf("device_status_topic == NULL\n");
         goto done;
     }
 
@@ -336,62 +448,66 @@ subscriber_main_w_args(
         goto done;
     }
 
-    struct DDS_Duration_t deadline = {2, 0};
-    Application_configure_periodic_reader_qos(&dr_qos, &deadline);
-
-    /* dr_qos.resource_limits.max_samples_per_instance = 1; */
-    /*  dr_qos.resource_limits.max_samples = dr_qos.resource_limits.max_instances *
-    dr_qos.resource_limits.max_samples_per_instance; */
-    /* if there are more remote writers, you need to increase these limits */
-    /* dr_qos.reader_resource_limits.max_remote_writers = 10; */
-    /* dr_qos.reader_resource_limits.max_remote_writers_per_instance = 10; */
-    /* DR history default is KEEP_LAST 1 */
-    /* dr_qos.history.depth = 32; */
-
     #ifdef USE_DEADLINE_QOS
     /* add deadline policy - 2 seconds */
     /* dr_qos.deadline.period.sec = 2; */
     /* dr_qos.deadline.period.nanosec = 0; */
-    dr_listener.on_requested_deadline_missed = ProximityTypeSubscriber_on_deadline_missed;
+    proximity_dr_listener.on_requested_deadline_missed = ProximityTypeSubscriber_on_deadline_missed;
     #endif
 
-    /* Reliability QoS */
-    /*
-    #ifdef USE_RELIABLE_QOS
-    dr_qos.reliability.kind = DDS_RELIABLE_RELIABILITY_QOS;
-    #else
-    dr_qos.reliability.kind = DDS_BEST_EFFORT_RELIABILITY_QOS;
-    #endif
-    */
+
     #ifdef USE_SAMPLE_FILTER
     /* choose one callback to enable */
     #ifdef FILTER_ON_DESERIALIZE
-    dr_listener.on_before_sample_deserialize =
+    proximity_dr_listener.on_before_sample_deserialize =
     ProximityTypeSubscriber_on_before_sample_deserialize;
     #else
-    dr_listener.on_before_sample_commit =
+    proximity_dr_listener.on_before_sample_commit =
     ProximityTypeSubscriber_on_before_sample_commit;
     #endif  /* FILTER_ON_DESERIALIZE */
     #endif  /* USE_SAMPLE_FILTER */
 
-    dr_listener.on_data_available = ProximityTypeSubscriber_on_data_available;
-    dr_listener.on_subscription_matched =
-    ProximityTypeSubscriber_on_subscription_matched;
+    proximity_dr_listener.on_data_available = ProximityTypeSubscriber_on_data_available;
+    proximity_dr_listener.on_subscription_matched = ProximityTypeSubscriber_on_subscription_matched;
+    proximity_dr_listener.as_listener.listener_data = &proximity_total_samples;
 
-    dr_listener.as_listener.listener_data = &total_samples;
 
-    datareader = DDS_Subscriber_create_datareader(
+    struct DDS_Duration_t deadline = {2, 0};
+    Application_configure_periodic_reader_qos(&dr_qos, &deadline);
+
+    proximity_dr = DDS_Subscriber_create_datareader(
         subscriber,
-        DDS_Topic_as_topicdescription(topic),
+        DDS_Topic_as_topicdescription(proximity_topic),
         &dr_qos,
-        &dr_listener,
+        &proximity_dr_listener,
         DDS_DATA_AVAILABLE_STATUS | DDS_SUBSCRIPTION_MATCHED_STATUS | DDS_REQUESTED_DEADLINE_MISSED_STATUS);
 
-    if (datareader == NULL)
+    if (proximity_dr == NULL)
     {
-        printf("datareader == NULL\n");
+        printf("proximity_dr == NULL\n");
         goto done;
     }
+
+
+    device_status_dr_listener.on_data_available = DeviceStatusTypeSubscriber_on_data_available;
+    device_status_dr_listener.on_subscription_matched = DeviceStatusTypeSubscriber_on_subscription_matched;
+    device_status_dr_listener.as_listener.listener_data = &device_status_total_samples;
+    Application_configure_status_reader_qos(&dr_qos, NULL);
+
+    device_status_dr = DDS_Subscriber_create_datareader(
+        subscriber,
+        DDS_Topic_as_topicdescription(device_status_topic),
+        &dr_qos,
+        &device_status_dr_listener,
+        DDS_DATA_AVAILABLE_STATUS | DDS_SUBSCRIPTION_MATCHED_STATUS);
+
+    if (device_status_dr == NULL)
+    {
+        printf("device_status_dr == NULL\n");
+        goto done;
+    }
+
+
 
     #ifdef RTI_CERT
     #ifdef RTI_VXWORKS
@@ -429,8 +545,8 @@ subscriber_main_w_args(
     #endif
     if (ret_value == 0)
     {
-        printf("Samples received %d\n", total_samples);
-        if (total_samples == 0)
+        printf("Samples received %d\n", proximity_total_samples);
+        if (proximity_total_samples == 0)
         {
             return -1;
         }

@@ -41,6 +41,7 @@
 struct Application
 {
     DDS_DomainParticipant *participant;
+    const char *name;
     DDS_Long sleep_time;
     DDS_Long count;
 };
@@ -53,6 +54,7 @@ Application_subscriber_help(char *appname);
 
 extern struct Application*
 Application_create(
+    const char *name,
     DDS_Long domain_id,
     char *udp_intf,
     const char *peer,

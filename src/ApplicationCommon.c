@@ -143,6 +143,7 @@ struct DDS_Duration_t Application_milliseconds_to_time(
 
 struct Application *
 Application_create(
+    const char *name,
     DDS_Long domain_id,
     char *udp_intf,
     const char *peer,
@@ -172,6 +173,7 @@ Application_create(
         goto done;
     }
 
+    application->name = name;
     application->sleep_time = sleep_time;
     application->count = count;
 
@@ -368,12 +370,21 @@ Application_create(
     dp_qos.resource_limits.max_receive_ports = 32;
     dp_qos.resource_limits.local_topic_allocation = 2;
     dp_qos.resource_limits.local_type_allocation = 2;
-    dp_qos.resource_limits.local_reader_allocation = 1;
+    dp_qos.resource_limits.local_reader_allocation = 2;
     dp_qos.resource_limits.local_writer_allocation = 2;
     dp_qos.resource_limits.remote_participant_allocation = 5;
     dp_qos.resource_limits.remote_reader_allocation = 25;
     dp_qos.resource_limits.remote_writer_allocation = 25;
 
+    /* Enable participant discovery by name - detect participant after reset */
+    dp_qos.discovery.enable_participant_discovery_by_name = DDS_BOOLEAN_TRUE;
+
+    snprintf(
+            dp_qos.participant_name.name,
+            sizeof(dp_qos.participant_name.name),
+            "%s",
+            application->name);
+    
     application->participant = DDS_DomainParticipantFactory_create_participant(
         factory,
         domain_id,
