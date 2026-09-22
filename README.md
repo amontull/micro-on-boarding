@@ -168,7 +168,7 @@ traffic through the firewall.
 | `DatatypeDefinitions*.c/.h` | Generated type support |
 | `src/ProximitySensor.c` | Publisher and DataWriter logic |
 | `src/Controller.c` | Subscriber and DataReader logic |
-| `src/DatatypeDefinitionsApplication.c/.h` | Participant, UDP, discovery, and shared QoS setup |
+| `src/ApplicationCommon.c/.h` | Participant, UDP, discovery, and shared QoS setup |
 | `CMakeLists.txt` | CMake build and optional IDL regeneration rules |
 | `DatatypeDefinitions.xml` | XML type description for Admin Console |
 
@@ -185,29 +185,7 @@ traffic through the firewall.
 - Run `./.../ProximitySensor -h` or `./.../Controller -h` to display the
 	built-in help.
 
-## Change log
 
-The following changes have been applied to Exercise 1:
+## Questions
 
-- Disabled reliable writer/reader QoS by default; best-effort reliability is
-	now used unless `USE_RELIABLE_QOS` is enabled.
-- Added deadline QoS support with a one-second writer deadline and a
-	two-second reader deadline.
-- Added a subscriber callback that reports missed deadlines and enabled the
-	`DDS_REQUESTED_DEADLINE_MISSED_STATUS` status on the DataReader.
-- Reduced the writer and reader maximum samples per instance from 32 to 1,
-	leaving the default `KEEP_LAST` history depth of 1 in use.
-- Limited the shared `Application` object to participant, timing, and runtime
-	configuration. It no longer stores a topic or type name.
-- Removed the unused `local_participant_name` and `remote_participant_name`
-	parameters from `Application_create` and updated both applications to use
-	the simplified API.
-- Moved `ProximityType` registration and `ProximityTopic` topic
-	creation from the shared application code into the publisher and subscriber.
-	This keeps type and topic ownership local to the applications that use
-	them, which allows larger systems to define separate application-specific
-	topics and endpoints.
-
-For generated build notes and platform-specific commands, see
-[`README.txt`](README.txt).
-
+- Can I re-use a single generic data writer, and simply narrow any specific data writer with it?

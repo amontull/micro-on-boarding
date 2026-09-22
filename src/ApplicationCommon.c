@@ -9,7 +9,7 @@
 #include "rh_sm/rh_sm_history.h"
 #include "netio/netio_udp.h"
 
-#include "DatatypeDefinitionsApplication.h"
+#include "ApplicationCommon.h"
 
 void
 Application_publisher_help(char *appname)
@@ -40,6 +40,37 @@ Application_subscriber_help(char *appname)
     printf("\n");
 }
 
+extern void Application_configure_status_writer_qos(
+    struct DDS_DataWriterQos *qos,
+    const struct DDS_Duration_t *const lease_duration)
+{
+    /* set default values for dw qos */
+    *qos = (struct DDS_DataWriterQos) DDS_DataWriterQos_INITIALIZER;
+    
+    qos->reliability.kind = DDS_RELIABLE_RELIABILITY_QOS;
+    qos->history.kind = DDS_KEEP_LAST_HISTORY_QOS;
+    qos->history.depth = 1;
+    qos->durability.kind = DDS_TRANSIENT_LOCAL_DURABILITY_QOS;
+    qos->resource_limits.max_samples_per_instance = 1;
+    qos->resource_limits.max_samples = qos->resource_limits.max_instances *
+        qos->resource_limits.max_samples_per_instance;
+}
+
+extern void Application_configure_status_reader_qos(
+    struct DDS_DataReaderQos *qos,
+    const struct DDS_Duration_t *const lease_duration)
+{
+    /* set default values for dw qos */
+    *qos = (struct DDS_DataReaderQos) DDS_DataReaderQos_INITIALIZER;
+    
+    qos->reliability.kind = DDS_RELIABLE_RELIABILITY_QOS;
+    qos->history.kind = DDS_KEEP_LAST_HISTORY_QOS;
+    qos->history.depth = 1;
+    qos->durability.kind = DDS_TRANSIENT_LOCAL_DURABILITY_QOS;
+    qos->resource_limits.max_samples_per_instance = 1;
+    qos->resource_limits.max_samples = qos->resource_limits.max_instances *
+        qos->resource_limits.max_samples_per_instance;
+}
 
 void Application_configure_periodic_writer_qos(
     struct DDS_DataWriterQos *qos,
@@ -335,10 +366,10 @@ Application_create(
     /* if there are more remote or local endpoints, you need to increase these limits */
     dp_qos.resource_limits.max_destination_ports = 32;
     dp_qos.resource_limits.max_receive_ports = 32;
-    dp_qos.resource_limits.local_topic_allocation = 1;
-    dp_qos.resource_limits.local_type_allocation = 1;
+    dp_qos.resource_limits.local_topic_allocation = 2;
+    dp_qos.resource_limits.local_type_allocation = 2;
     dp_qos.resource_limits.local_reader_allocation = 1;
-    dp_qos.resource_limits.local_writer_allocation = 1;
+    dp_qos.resource_limits.local_writer_allocation = 2;
     dp_qos.resource_limits.remote_participant_allocation = 5;
     dp_qos.resource_limits.remote_reader_allocation = 25;
     dp_qos.resource_limits.remote_writer_allocation = 25;

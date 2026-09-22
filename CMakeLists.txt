@@ -491,14 +491,14 @@ SET_LIB_ORDER(MICRO_C_LIBS)
 
 ADD_EXECUTABLE(ProximitySensor
                ${CMAKE_CURRENT_SOURCE_DIR}/src/ProximitySensor.${SOURCE_EXTENSION}
-               ${CMAKE_CURRENT_SOURCE_DIR}/src/DatatypeDefinitionsApplication.${SOURCE_EXTENSION}
-               ${CMAKE_CURRENT_SOURCE_DIR}/src/DatatypeDefinitionsApplication.h
+               ${CMAKE_CURRENT_SOURCE_DIR}/src/ApplicationCommon.${SOURCE_EXTENSION}
+               ${CMAKE_CURRENT_SOURCE_DIR}/src/ApplicationCommon.h
                                              ${IDL_GEN_C} ${IDL_GEN_H} ${APP_GEN_C} ${APP_GEN_H})
 
 ADD_EXECUTABLE(Controller
                ${CMAKE_CURRENT_SOURCE_DIR}/src/Controller.${SOURCE_EXTENSION}
-               ${CMAKE_CURRENT_SOURCE_DIR}/src/DatatypeDefinitionsApplication.${SOURCE_EXTENSION}
-               ${CMAKE_CURRENT_SOURCE_DIR}/src/DatatypeDefinitionsApplication.h
+               ${CMAKE_CURRENT_SOURCE_DIR}/src/ApplicationCommon.${SOURCE_EXTENSION}
+               ${CMAKE_CURRENT_SOURCE_DIR}/src/ApplicationCommon.h
                                              ${IDL_GEN_C} ${IDL_GEN_H} ${APP_GEN_C} ${APP_GEN_H})
 
 TARGET_LINK_LIBRARIES(ProximitySensor

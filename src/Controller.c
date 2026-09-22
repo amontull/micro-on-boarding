@@ -11,7 +11,7 @@
 #include "DatatypeDefinitionsSupport.h"
 #include "DatatypeDefinitionsPlugin.h"
 
-#include "DatatypeDefinitionsApplication.h"
+#include "ApplicationCommon.h"
 
 #ifdef USE_SAMPLE_FILTER
 #ifdef FILTER_ON_DESERIALIZE

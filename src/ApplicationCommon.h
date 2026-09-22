@@ -60,12 +60,20 @@ Application_create(
     DDS_Long count);
 
 extern void Application_configure_periodic_writer_qos(
-    struct DDS_DataWriterQos *writer_qos,
+    struct DDS_DataWriterQos *qos,
     const struct DDS_Duration_t *const deadline);
 
 extern void Application_configure_periodic_reader_qos(
-    struct DDS_DataReaderQos *reader_qos,
+    struct DDS_DataReaderQos *qos,
     const struct DDS_Duration_t *const deadline);
+
+extern void Application_configure_status_writer_qos(
+    struct DDS_DataWriterQos *qos,
+    const struct DDS_Duration_t *const lease_duration);
+
+extern void Application_configure_status_reader_qos(
+    struct DDS_DataReaderQos *qos,
+    const struct DDS_Duration_t *const lease_duration);
 
 extern struct DDS_Duration_t Application_milliseconds_to_time(
     DDS_Long milliseconds);
