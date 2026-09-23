@@ -1,0 +1,165 @@
+<dds xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+     xsi:noNamespaceSchemaLocation="resource/schema/dds-xml_system_definitions.xsd">
+
+    <qos_library name="DeviceQosLibrary">
+
+        <qos_profile name="ParticipantProfile">
+            <participant_qos>
+                <transport_builtin>
+                    <mask>UDPv4</mask>
+                </transport_builtin>
+
+                <discovery>
+                    <initial_peers>
+                        <element>127.0.0.1</element>
+                        <!-- <element>239.255.0.1</element> -->
+                    </initial_peers>
+                    <enabled_transports>
+                        <element>udpv4</element>
+                    </enabled_transports>
+                </discovery>
+
+                <discovery_config>
+                    <builtin_discovery_plugins>SDP</builtin_discovery_plugins>
+                </discovery_config>
+
+                <resource_limits>
+                    <local_topic_allocation>
+                        <max_count>2</max_count>
+                    </local_topic_allocation>
+                    <local_type_allocation>
+                        <max_count>2</max_count>
+                    </local_type_allocation>
+                    <local_reader_allocation>
+                        <max_count>2</max_count>
+                    </local_reader_allocation>
+                    <local_writer_allocation>
+                        <max_count>2</max_count>
+                    </local_writer_allocation>
+                    <remote_participant_allocation>
+                        <max_count>5</max_count>
+                    </remote_participant_allocation>
+                    <remote_reader_allocation>
+                        <max_count>25</max_count>
+                    </remote_reader_allocation>
+                    <remote_writer_allocation>
+                        <max_count>25</max_count>
+                    </remote_writer_allocation>
+                    <max_receive_ports>32</max_receive_ports>
+                    <max_destination_ports>32</max_destination_ports>
+                </resource_limits>
+
+                <property>
+                    <value>
+                        <element>
+                            <name>dds.micro.discovery.enable_participant_discovery_by_name</name>
+                            <value>true</value>
+                        </element>
+                    </value>
+                </property>
+            </participant_qos>
+        </qos_profile>
+
+        <!-- Latest periodic sensor value; detect missing updates after 2 s. -->
+        <qos_profile name="PeriodicReader">
+            <datareader_qos>
+                <reliability>
+                    <kind>BEST_EFFORT_RELIABILITY_QOS</kind>
+                </reliability>
+
+                <history>
+                    <kind>KEEP_LAST_HISTORY_QOS</kind>
+                    <depth>1</depth>
+                </history>
+
+                <deadline>
+                    <period>
+                        <sec>2</sec>
+                        <nanosec>0</nanosec>
+                    </period>
+                </deadline>
+
+                <resource_limits>
+                    <max_samples>3</max_samples>
+                    <max_instances>3</max_instances>
+                    <max_samples_per_instance>1</max_samples_per_instance>
+                </resource_limits>
+
+                <reader_resource_limits>
+                    <max_remote_writers>10</max_remote_writers>
+                    <max_remote_writers_per_instance>10</max_remote_writers_per_instance>
+                </reader_resource_limits>
+            </datareader_qos>
+
+            <datawriter_qos>
+                <reliability>
+                    <kind>BEST_EFFORT_RELIABILITY_QOS</kind>
+                </reliability>
+
+                <history>
+                    <kind>KEEP_LAST_HISTORY_QOS</kind>
+                    <depth>1</depth>
+                </history>
+
+                <deadline>
+                    <period>
+                        <sec>1</sec>
+                        <nanosec>0</nanosec>
+                    </period>
+                </deadline>
+
+                <resource_limits>
+                    <max_samples>1</max_samples>
+                    <max_instances>1</max_instances>
+                    <max_samples_per_instance>1</max_samples_per_instance>
+                </resource_limits>
+            </datawriter_qos>            
+        </qos_profile>
+
+        <!-- Retain the latest device status for late-joining readers. -->
+        <qos_profile name="StatusWriter">
+            <datawriter_qos>
+                <reliability>
+                    <kind>RELIABLE_RELIABILITY_QOS</kind>
+                </reliability>
+
+                <durability>
+                    <kind>TRANSIENT_LOCAL_DURABILITY_QOS</kind>
+                </durability>
+
+                <history>
+                    <kind>KEEP_LAST_HISTORY_QOS</kind>
+                    <depth>1</depth>
+                </history>
+
+                <resource_limits>
+                    <max_samples>1</max_samples>
+                    <max_instances>1</max_instances>
+                    <max_samples_per_instance>1</max_samples_per_instance>
+                </resource_limits>
+            </datawriter_qos>
+
+            <datareader_qos>
+                <reliability>
+                    <kind>RELIABLE_RELIABILITY_QOS</kind>
+                </reliability>
+
+                <durability>
+                    <kind>TRANSIENT_LOCAL_DURABILITY_QOS</kind>
+                </durability>
+
+                <history>
+                    <kind>KEEP_LAST_HISTORY_QOS</kind>
+                    <depth>1</depth>
+                </history>
+
+                <resource_limits>
+                    <max_samples>3</max_samples>
+                    <max_instances>3</max_instances>
+                    <max_samples_per_instance>1</max_samples_per_instance>
+                </resource_limits>
+            </datareader_qos>
+        </qos_profile>
+
+    </qos_library>
+</dds>

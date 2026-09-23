@@ -4,12 +4,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "disc_dpde/disc_dpde_discovery_plugin.h"
 #include "wh_sm/wh_sm_history.h"
 #include "rh_sm/rh_sm_history.h"
-#include "netio/netio_udp.h"
+#include "app_gen/app_gen_plugin.h"
 
 #include "ApplicationCommon.h"
+#include "../generated/SystemAppgen.h"
 
 void
 Application_publisher_help(char *appname)
@@ -40,91 +40,6 @@ Application_subscriber_help(char *appname)
     printf("\n");
 }
 
-extern void Application_configure_status_writer_qos(
-    struct DDS_DataWriterQos *qos,
-    const struct DDS_Duration_t *const lease_duration)
-{
-    /* set default values for dw qos */
-    *qos = (struct DDS_DataWriterQos) DDS_DataWriterQos_INITIALIZER;
-    
-    qos->reliability.kind = DDS_RELIABLE_RELIABILITY_QOS;
-    qos->history.kind = DDS_KEEP_LAST_HISTORY_QOS;
-    qos->history.depth = 1;
-    qos->durability.kind = DDS_TRANSIENT_LOCAL_DURABILITY_QOS;
-    qos->resource_limits.max_samples_per_instance = 1;
-    qos->resource_limits.max_samples = qos->resource_limits.max_instances *
-        qos->resource_limits.max_samples_per_instance;
-}
-
-extern void Application_configure_status_reader_qos(
-    struct DDS_DataReaderQos *qos,
-    const struct DDS_Duration_t *const lease_duration)
-{
-    /* set default values for dw qos */
-    *qos = (struct DDS_DataReaderQos) DDS_DataReaderQos_INITIALIZER;
-    
-    qos->reliability.kind = DDS_RELIABLE_RELIABILITY_QOS;
-    qos->history.kind = DDS_KEEP_LAST_HISTORY_QOS;
-    qos->history.depth = 1;
-    qos->durability.kind = DDS_TRANSIENT_LOCAL_DURABILITY_QOS;
-    qos->resource_limits.max_samples_per_instance = 1;
-    qos->resource_limits.max_samples = qos->resource_limits.max_instances *
-        qos->resource_limits.max_samples_per_instance;
-}
-
-void Application_configure_periodic_writer_qos(
-    struct DDS_DataWriterQos *qos,
-    const struct DDS_Duration_t *const deadline)
-{
-    /* set default values for dw qos */
-    *qos = (struct DDS_DataWriterQos) DDS_DataWriterQos_INITIALIZER;
-
-    qos->reliability.kind = DDS_BEST_EFFORT_RELIABILITY_QOS;
-
-    /* this is already the default initialization */
-    qos->history.kind = DDS_KEEP_LAST_HISTORY_QOS;
-    qos->history.depth = 1;
-#ifdef USE_DEADLINE_QOS
-    /* The writer promises to update each instance at least every 100 ms. */
-    qos->deadline.period.sec = deadline->sec;
-    qos->deadline.period.nanosec = deadline->nanosec;
-#endif
-    /* For an unkeyed topic, max_samples_per_instance == max_samples. */
-    /* qos->resource_limits.max_instances = 1; */
-    qos->resource_limits.max_samples_per_instance = 1;
-    qos->resource_limits.max_samples = qos->resource_limits.max_instances *
-        qos->resource_limits.max_samples_per_instance;
-}
-
-
-void Application_configure_periodic_reader_qos(
-    struct DDS_DataReaderQos *qos,
-    const struct DDS_Duration_t *const deadline)
-{
-    /* set default values for dw qos */
-    *qos = (struct DDS_DataReaderQos) DDS_DataReaderQos_INITIALIZER;
-
-    qos->reliability.kind = DDS_BEST_EFFORT_RELIABILITY_QOS;
-
-    /* --- this is already the default initialization ---*/
-    qos->history.kind = DDS_KEEP_LAST_HISTORY_QOS;
-    qos->history.depth = 1;
-
-#ifdef USE_DEADLINE_QOS
-    /* The writer promises to update each instance at least every 100 ms. */
-    printf("Configuring reader deadline period: %ld sec, %ld nanosec\n", (long)deadline->sec, (long)deadline->nanosec);
-    qos->deadline.period.sec = deadline->sec;
-    qos->deadline.period.nanosec = deadline->nanosec;
-#endif
-
-    qos->resource_limits.max_samples_per_instance = 1;
-    qos->resource_limits.max_samples = qos->resource_limits.max_instances *
-        qos->resource_limits.max_samples_per_instance;
-    /* if there are more remote writers, you need to increase these limits */
-    qos->reader_resource_limits.max_remote_writers = 10;
-    qos->reader_resource_limits.max_remote_writers_per_instance = 10;
-}
-
 struct DDS_Duration_t Application_milliseconds_to_time(
     DDS_Long milliseconds)
 {
@@ -150,17 +65,12 @@ Application_create(
     DDS_Long sleep_time,
     DDS_Long count)
 {
-    DDS_ReturnCode_t retcode;
     DDS_DomainParticipantFactory *factory = NULL;
-    struct DDS_DomainParticipantQos dp_qos =
-    DDS_DomainParticipantQos_INITIALIZER;
     DDS_Boolean success = DDS_BOOLEAN_FALSE;
     RT_Registry_T *registry = NULL;
-    struct UDP_InterfaceFactoryProperty *udp_property = NULL;
-    struct DPDE_DiscoveryPluginProperty discovery_plugin_properties =
-    DPDE_DiscoveryPluginProperty_INITIALIZER;
+    struct APPGEN_FactoryProperty appgen_property =
+        APPGEN_FactoryProperty_INITIALIZER;
     struct Application *application = NULL;
-    const char *effective_peer = NULL;
 
     /* Uncomment to increase verbosity level:
     OSAPI_Log_set_verbosity(OSAPI_LOG_VERBOSITY_WARNING);
@@ -176,6 +86,10 @@ Application_create(
     application->name = name;
     application->sleep_time = sleep_time;
     application->count = count;
+
+    (void)domain_id;
+    (void)udp_intf;
+    (void)peer;
 
     factory = DDS_DomainParticipantFactory_get_instance();
 
@@ -203,194 +117,18 @@ Application_create(
         goto done;
     }
 
-    /* If the UDP transport has already been registered, unregister it to
-    * set new properties.
-    */
-    if (RT_Registry_unregister(registry, NETIO_DEFAULT_UDP_NAME, NULL, NULL))
+    appgen_property._model = APPGEN_get_library_seq();
+    if (!APPGEN_Factory_register(registry, &appgen_property))
     {
-        printf("Unregistered existing UDP transport.\n");
-    }
-    udp_property = (struct UDP_InterfaceFactoryProperty *)
-    malloc(sizeof(struct UDP_InterfaceFactoryProperty));
-    if (udp_property == NULL)
-    {
-        printf("failed to allocate udp properties\n");
-        goto done;
-    }
-    *udp_property = UDP_INTERFACE_FACTORY_PROPERTY_DEFAULT;
-
-    /* For additional allowed interface(s), increase maximum and length, and
-    set interface below:
-    */
-    if (!DDS_StringSeq_set_maximum(&udp_property->allow_interface,2))
-    {
-        printf("failed to set allow_interface maximum\n");
-        goto done;
-    }
-    if (!DDS_StringSeq_set_length(&udp_property->allow_interface,2))
-    {
-        printf("failed to set allow_interface length\n");
+        printf("failed to register application generation model\n");
         goto done;
     }
 
-    /* loopback interface */
-    #if defined(RTI_DARWIN) || defined(RTI_VXWORKS) || defined(RTI_QNX)
-    *DDS_StringSeq_get_reference(&udp_property->allow_interface,0) =
-    DDS_String_dup("lo0");
-    #elif defined (RTI_LINUX)
-    *DDS_StringSeq_get_reference(&udp_property->allow_interface,0) =
-    DDS_String_dup("lo");
-    #elif defined(RTI_WIN32)
-    *DDS_StringSeq_get_reference(&udp_property->allow_interface,0) =
-    DDS_String_dup("Loopback Pseudo-Interface 1");
-    #else
-    *DDS_StringSeq_get_reference(&udp_property->allow_interface,0) =
-    DDS_String_dup("lo");
-    #endif
-
-    if (udp_intf != NULL)
-    { /* use interface supplied on command line */
-        *DDS_StringSeq_get_reference(&udp_property->allow_interface,1) =
-        DDS_String_dup(udp_intf);
-    }
-    else                /* use hardcoded interface */
-    {
-        #if defined(RTI_DARWIN)
-        *DDS_StringSeq_get_reference(&udp_property->allow_interface,1) =
-        DDS_String_dup("en1");
-        #elif defined (RTI_LINUX)
-        *DDS_StringSeq_get_reference(&udp_property->allow_interface,1) =
-        DDS_String_dup("eth0");
-        #elif defined (RTI_VXWORKS)
-        *DDS_StringSeq_get_reference(&udp_property->allow_interface,1) =
-        DDS_String_dup("geisc0");
-        #elif defined(RTI_WIN32)
-        *DDS_StringSeq_get_reference(&udp_property->allow_interface,1) =
-        DDS_String_dup("Local Area Connection");
-        #else
-        *DDS_StringSeq_get_reference(&udp_property->allow_interface,1) =
-        DDS_String_dup("ce0");
-        #endif
-    }
-
-    if (!RT_Registry_register(
-        registry,
-        NETIO_DEFAULT_UDP_NAME,
-        UDP_InterfaceFactory_get_interface(),
-        (struct RT_ComponentFactoryProperty*)udp_property,
-        NULL))
-    {
-        printf("failed to register udp\n");
-        goto done;
-    }
-
-    effective_peer = (peer != NULL) ? peer : "_udp://127.0.0.1";
-
-    if (!RT_Registry_register(
-        registry,
-        "dpde",
-        DPDE_DiscoveryFactory_get_interface(),
-        &discovery_plugin_properties._parent,
-        NULL))
-    {
-        printf("failed to register dpde\n");
-        goto done;
-    }
-
-    if (!RT_ComponentFactoryId_set_name(&dp_qos.discovery.discovery.name,"dpde"))
-    {
-        printf("failed to set discovery plugin name\n");
-        goto done;
-    }
-
-    if (!DDS_StringSeq_set_maximum(&dp_qos.transports.enabled_transports,1))
-    {
-        printf("failed to set maximum for transports.enabled_transports\n");
-        goto done;
-    }
-
-    if (!DDS_StringSeq_set_length(&dp_qos.transports.enabled_transports,1))
-    {
-        printf("failed to set length for transports.enabled_transports\n");
-        goto done;
-    }
-    *DDS_StringSeq_get_reference(&dp_qos.transports.enabled_transports,0) = DDS_String_dup("_udp");
-
-    if (!DDS_StringSeq_set_maximum(&dp_qos.discovery.enabled_transports,3))
-    {
-        printf("failed to set maximum for discovery.enabled_transports\n");
-        goto done;
-    }
-
-    if (!DDS_StringSeq_set_length(&dp_qos.discovery.enabled_transports,3))
-    {
-        printf("failed to set length for discovery.enabled_transports\n");
-        goto done;
-    }
-
-    *DDS_StringSeq_get_reference(&dp_qos.discovery.enabled_transports,0) =
-    DDS_String_dup("_udp://239.255.0.1");
-    *DDS_StringSeq_get_reference(&dp_qos.discovery.enabled_transports,1) =
-    DDS_String_dup("_udp://");
-    *DDS_StringSeq_get_reference(&dp_qos.discovery.enabled_transports,2) =
-    DDS_String_dup("_udp://127.0.0.1");
-
-    if (!DDS_StringSeq_set_maximum(&dp_qos.user_traffic.enabled_transports,2))
-    {
-        printf("failed to set maximum for user_traffic.enabled_transports\n");
-        goto done;
-    }
-
-    if (!DDS_StringSeq_set_length(&dp_qos.user_traffic.enabled_transports,2))
-    {
-        printf("failed to set length for user_traffic.enabled_transports\n");
-        goto done;
-    }
-
-    *DDS_StringSeq_get_reference(&dp_qos.user_traffic.enabled_transports,0) =
-    DDS_String_dup("_udp://");
-    *DDS_StringSeq_get_reference(&dp_qos.user_traffic.enabled_transports,1) =
-    DDS_String_dup("_udp://127.0.0.1");
-
-    if (!DDS_StringSeq_set_maximum(&dp_qos.discovery.initial_peers,1))
-    {
-        printf("failed to set initial peers maximum\n");
-        goto done;
-    }
-    if (!DDS_StringSeq_set_length(&dp_qos.discovery.initial_peers,1))
-    {
-        printf("failed to set initial peers length\n");
-        goto done;
-    }
-    *DDS_StringSeq_get_reference(&dp_qos.discovery.initial_peers,0) =
-    DDS_String_dup(effective_peer);
-
-    /* if there are more remote or local endpoints, you need to increase these limits */
-    dp_qos.resource_limits.max_destination_ports = 32;
-    dp_qos.resource_limits.max_receive_ports = 32;
-    dp_qos.resource_limits.local_topic_allocation = 2;
-    dp_qos.resource_limits.local_type_allocation = 2;
-    dp_qos.resource_limits.local_reader_allocation = 2;
-    dp_qos.resource_limits.local_writer_allocation = 2;
-    dp_qos.resource_limits.remote_participant_allocation = 5;
-    dp_qos.resource_limits.remote_reader_allocation = 25;
-    dp_qos.resource_limits.remote_writer_allocation = 25;
-
-    /* Enable participant discovery by name - detect participant after reset */
-    dp_qos.discovery.enable_participant_discovery_by_name = DDS_BOOLEAN_TRUE;
-
-    snprintf(
-            dp_qos.participant_name.name,
-            sizeof(dp_qos.participant_name.name),
-            "%s",
-            application->name);
-    
-    application->participant = DDS_DomainParticipantFactory_create_participant(
-        factory,
-        domain_id,
-        &dp_qos,
-        NULL,
-        DDS_STATUS_MASK_NONE);
+    application->participant =
+        DDS_DomainParticipantFactory_create_participant_from_config(
+            factory,
+            application->name
+        );
 
     if (application->participant == NULL)
     {
@@ -401,20 +139,8 @@ Application_create(
     success = DDS_BOOLEAN_TRUE;
 
     done:
-    #ifndef RTI_CERT
-    DDS_DomainParticipantQos_finalize(&dp_qos);
-    #endif
-
     if (!success)
     {
-        #ifndef RTI_CERT
-        if (udp_property != NULL)
-        {
-            UDP_InterfaceFactoryProperty_finalize(udp_property);
-            free(udp_property);
-        }
-        #endif
-
         if (application != NULL)
         {
             #ifndef RTI_CERT
@@ -434,7 +160,6 @@ Application_delete(struct Application *application)
     DDS_ReturnCode_t retcode;
     RT_Registry_T *registry = NULL;
     DDS_DomainParticipantFactory *factory = NULL;
-    struct UDP_InterfaceFactoryProperty *udp_property = NULL;
     if (application == NULL)
     {
         return;
@@ -463,25 +188,9 @@ Application_delete(struct Application *application)
 
     registry = DDS_DomainParticipantFactory_get_registry(factory);
 
-    if (!RT_Registry_unregister(
-        registry,
-        NETIO_DEFAULT_UDP_NAME,
-        (struct RT_ComponentFactoryProperty**)&udp_property,
-        NULL))
+    if (!APPGEN_Factory_unregister(registry, NULL))
     {
-        printf("failed to unregister udp\n");
-        return;
-    }
-    if (udp_property != NULL)
-    {
-        UDP_InterfaceFactoryProperty_finalize(udp_property);
-        free(udp_property);
-        udp_property = NULL;
-    }
-
-    if (!RT_Registry_unregister(registry, "dpde", NULL, NULL))
-    {
-        printf("failed to unregister dpde\n");
+        printf("failed to unregister application generation model\n");
         return;
     }
     if (!RT_Registry_unregister(

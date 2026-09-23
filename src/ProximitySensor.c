@@ -13,6 +13,8 @@
 
 #include "ApplicationCommon.h"
 
+#define DEVICE_ID_MAX_LENGTH 16U
+
 
 static void
 ProximityTypePublisher_on_publication_matched(
@@ -46,7 +48,6 @@ publisher_main_w_args(
     DDS_DataWriter *datawriter;
     ProximityTypeDataWriter *proximity_dw;
     DeviceStatusDataWriter *device_status_dw;
-    struct DDS_DataWriterQos dw_qos = DDS_DataWriterQos_INITIALIZER;
     DDS_ReturnCode_t retcode;
     ProximityType *proximity_sample = NULL;
     DeviceStatus *device_status_sample = NULL;
@@ -54,6 +55,13 @@ publisher_main_w_args(
     DDS_Long i;
     struct DDS_DataWriterListener dw_listener = DDS_DataWriterListener_INITIALIZER;
     int ret_value = -1;
+
+    if (sensor_name == NULL || strlen(sensor_name) > DEVICE_ID_MAX_LENGTH)
+    {
+        printf("sensor name must be between 1 and %u characters\n",
+               (unsigned int)DEVICE_ID_MAX_LENGTH);
+        return -1;
+    }
 
     proximity_sample = ProximityTypeTypeSupport_create_data();
     if (proximity_sample == NULL)
@@ -70,7 +78,7 @@ publisher_main_w_args(
     }
 
     application = Application_create(
-        sensor_name,
+        "DeviceParticipantLibrary::ProximitySensorParticipant",
         domain_id,
         udp_intf,
         peer,
@@ -83,55 +91,8 @@ publisher_main_w_args(
         goto done;
     }
 
-    retcode = DeviceStatusTypeSupport_register_type(
-        application->participant,
-        DeviceStatusTypeSupport_get_type_name());
-    if (retcode != DDS_RETCODE_OK)
-    {
-        printf("failed to register DeviceStatus\n");
-        goto done;
-    }
-
-    retcode = ProximityTypeTypeSupport_register_type(
-        application->participant,
-        ProximityTypeTypeSupport_get_type_name());
-    if (retcode != DDS_RETCODE_OK)
-    {
-        printf("failed to register ProximityType\n");
-        goto done;
-    }
-
-    DDS_Topic *topic = DDS_DomainParticipant_create_topic(
-        application->participant,
-        PROXIMITY_TOPIC,
-        ProximityTypeTypeSupport_get_type_name(),
-        &DDS_TOPIC_QOS_DEFAULT,
-        NULL,
-        DDS_STATUS_MASK_NONE);
-    if (topic == NULL)
-    {
-        printf("topic == NULL\n");
-        goto done;
-    }
-        
-    DDS_Topic *device_status_topic = DDS_DomainParticipant_create_topic(
-        application->participant,
-        DEVICE_STATUS_TOPIC,
-        DeviceStatusTypeSupport_get_type_name(),
-        &DDS_TOPIC_QOS_DEFAULT,
-        NULL,
-        DDS_STATUS_MASK_NONE);
-    if (device_status_topic == NULL)
-    {
-        printf("device_status_topic == NULL\n");
-        goto done;
-    }
-
-    publisher = DDS_DomainParticipant_create_publisher(
-        application->participant,
-        &DDS_PUBLISHER_QOS_DEFAULT,
-        NULL,
-        DDS_STATUS_MASK_NONE);
+    publisher = DDS_DomainParticipant_lookup_publisher_by_name(
+        application->participant, "ProximityPublisher");
     if (publisher == NULL)
     {
         printf("publisher == NULL\n");
@@ -141,17 +102,8 @@ publisher_main_w_args(
 
     dw_listener.on_publication_matched = ProximityTypePublisher_on_publication_matched;
 
-    /* configure the QoS for the periodic writer */
-    struct DDS_Duration_t deadline;
-    deadline = Application_milliseconds_to_time(sleep_time);
-    Application_configure_periodic_writer_qos(&dw_qos, &deadline);
-
-    datawriter = DDS_Publisher_create_datawriter(
-        publisher,
-        topic,
-        &dw_qos,
-        &dw_listener,
-        DDS_STATUS_MASK_NONE);
+    datawriter = DDS_Publisher_lookup_datawriter_by_name(
+        publisher, "ProximityWriter");
 
     if (datawriter == NULL)
     {
@@ -159,17 +111,18 @@ publisher_main_w_args(
         goto done;
     }
 
+    retcode = DDS_DataWriter_set_listener(
+        datawriter, &dw_listener, DDS_PUBLICATION_MATCHED_STATUS);
+    if (retcode != DDS_RETCODE_OK)
+    {
+        printf("failed to set proximity writer listener\n");
+        goto done;
+    }
+
     proximity_dw = ProximityTypeDataWriter_narrow(datawriter);
 
-    /* configure the QoS for the device status writer */
-    Application_configure_status_writer_qos(&dw_qos, NULL);
-
-    datawriter = DDS_Publisher_create_datawriter(
-        publisher,
-        device_status_topic,
-        &dw_qos,
-        &dw_listener,
-        DDS_STATUS_MASK_NONE);
+    datawriter = DDS_Publisher_lookup_datawriter_by_name(
+        publisher, "DeviceStatusWriter");
 
     if (datawriter == NULL)
     {
@@ -179,6 +132,14 @@ publisher_main_w_args(
 
     device_status_dw = DeviceStatusDataWriter_narrow(
         datawriter);
+
+    retcode = DDS_DataWriter_set_listener(
+        datawriter, &dw_listener, DDS_PUBLICATION_MATCHED_STATUS);
+    if (retcode != DDS_RETCODE_OK)
+    {
+        printf("failed to set writer listener\n");
+        goto done;
+    }
 
     device_status_sample->deviceId = (DDS_String)sensor_name;
     device_status_sample->deviceKind = SENSOR;
@@ -248,13 +209,6 @@ publisher_main_w_args(
 
     #endif
     #ifndef RTI_CERT
-    retcode = DDS_DataWriterQos_finalize(&dw_qos);
-    if (retcode != DDS_RETCODE_OK)
-    {
-        printf("Cannot finalize DataWriterQos\n");
-        return -1;
-    }
-
     #endif
 
     return ret_value;

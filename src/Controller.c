@@ -365,7 +365,6 @@ subscriber_main_w_args(
     DDS_Subscriber *subscriber;
     DDS_DataReader *proximity_dr;
     DDS_DataReader *device_status_dr;
-    struct DDS_DataReaderQos dr_qos = DDS_DataReaderQos_INITIALIZER;
     DDS_ReturnCode_t retcode;
     struct Application *application;
 
@@ -380,7 +379,7 @@ subscriber_main_w_args(
     DDS_Long i;
 
     application = Application_create(
-        "Controller",
+        "DeviceParticipantLibrary::ControllerParticipant",
         domain_id,
         udp_intf,
         peer,
@@ -393,55 +392,8 @@ subscriber_main_w_args(
         goto done;
     }
 
-    retcode = DeviceStatusTypeSupport_register_type(
-        application->participant,
-        DeviceStatusTypeSupport_get_type_name());
-    if (retcode != DDS_RETCODE_OK)
-    {
-        printf("failed to register DeviceStatus\n");
-        goto done;
-    }
-
-    retcode = ProximityTypeTypeSupport_register_type(
-        application->participant,
-        ProximityTypeTypeSupport_get_type_name());
-    if (retcode != DDS_RETCODE_OK)
-    {
-        printf("failed to register ProximityType\n");
-        goto done;
-    }
-
-    DDS_Topic *proximity_topic = DDS_DomainParticipant_create_topic(
-        application->participant,
-        PROXIMITY_TOPIC,
-        ProximityTypeTypeSupport_get_type_name(),
-        &DDS_TOPIC_QOS_DEFAULT,
-        NULL,
-        DDS_STATUS_MASK_NONE);
-    if (proximity_topic == NULL)
-    {
-        printf("topic == NULL\n");
-        goto done;
-    }
-
-    DDS_Topic *device_status_topic = DDS_DomainParticipant_create_topic(
-        application->participant,
-        DEVICE_STATUS_TOPIC,
-        DeviceStatusTypeSupport_get_type_name(),
-        &DDS_TOPIC_QOS_DEFAULT,
-        NULL,
-        DDS_STATUS_MASK_NONE);
-    if (device_status_topic == NULL)
-    {
-        printf("device_status_topic == NULL\n");
-        goto done;
-    }
-
-    subscriber = DDS_DomainParticipant_create_subscriber(
-        application->participant,
-        &DDS_SUBSCRIBER_QOS_DEFAULT,
-        NULL,
-        DDS_STATUS_MASK_NONE);
+    subscriber = DDS_DomainParticipant_lookup_subscriber_by_name(
+        application->participant, "ProximitySubscriber");
     if (subscriber == NULL)
     {
         printf("subscriber == NULL\n");
@@ -472,15 +424,8 @@ subscriber_main_w_args(
     proximity_dr_listener.as_listener.listener_data = &proximity_total_samples;
 
 
-    struct DDS_Duration_t deadline = {2, 0};
-    Application_configure_periodic_reader_qos(&dr_qos, &deadline);
-
-    proximity_dr = DDS_Subscriber_create_datareader(
-        subscriber,
-        DDS_Topic_as_topicdescription(proximity_topic),
-        &dr_qos,
-        &proximity_dr_listener,
-        DDS_DATA_AVAILABLE_STATUS | DDS_SUBSCRIPTION_MATCHED_STATUS | DDS_REQUESTED_DEADLINE_MISSED_STATUS);
+    proximity_dr = DDS_Subscriber_lookup_datareader_by_name(
+        subscriber, "ProximityReader");
 
     if (proximity_dr == NULL)
     {
@@ -488,22 +433,37 @@ subscriber_main_w_args(
         goto done;
     }
 
+    retcode = DDS_DataReader_set_listener(
+        proximity_dr,
+        &proximity_dr_listener,
+        DDS_DATA_AVAILABLE_STATUS | DDS_SUBSCRIPTION_MATCHED_STATUS |
+            DDS_REQUESTED_DEADLINE_MISSED_STATUS);
+    if (retcode != DDS_RETCODE_OK)
+    {
+        printf("failed to set proximity reader listener\n");
+        goto done;
+    }
+
 
     device_status_dr_listener.on_data_available = DeviceStatusTypeSubscriber_on_data_available;
     device_status_dr_listener.on_subscription_matched = DeviceStatusTypeSubscriber_on_subscription_matched;
     device_status_dr_listener.as_listener.listener_data = &device_status_total_samples;
-    Application_configure_status_reader_qos(&dr_qos, NULL);
-
-    device_status_dr = DDS_Subscriber_create_datareader(
-        subscriber,
-        DDS_Topic_as_topicdescription(device_status_topic),
-        &dr_qos,
-        &device_status_dr_listener,
-        DDS_DATA_AVAILABLE_STATUS | DDS_SUBSCRIPTION_MATCHED_STATUS);
+    device_status_dr = DDS_Subscriber_lookup_datareader_by_name(
+        subscriber, "DeviceStatusReader");
 
     if (device_status_dr == NULL)
     {
         printf("device_status_dr == NULL\n");
+        goto done;
+    }
+
+    retcode = DDS_DataReader_set_listener(
+        device_status_dr,
+        &device_status_dr_listener,
+        DDS_DATA_AVAILABLE_STATUS | DDS_SUBSCRIPTION_MATCHED_STATUS);
+    if (retcode != DDS_RETCODE_OK)
+    {
+        printf("failed to set status reader listener\n");
         goto done;
     }
 
@@ -535,13 +495,6 @@ subscriber_main_w_args(
 
     #endif
     #ifndef RTI_CERT
-    retcode = DDS_DataReaderQos_finalize(&dr_qos);
-    if (retcode != DDS_RETCODE_OK)
-    {
-        printf("Cannot finalize DataReaderQos\n");
-        return -1;
-    }
-
     #endif
     if (ret_value == 0)
     {

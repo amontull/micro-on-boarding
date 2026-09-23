@@ -1,0 +1,58 @@
+<dds xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+     xsi:noNamespaceSchemaLocation="resource/schema/dds-xml_system_definitions.xsd">
+
+    <domain_library name="DeviceDomainLibrary">
+        <domain name="DeviceDomain" domain_id="0">
+            <register_type name="DeviceStatus"
+                           type_ref="DeviceStatus"/>
+            <register_type name="ProximityType"
+                           type_ref="ProximityType"/>
+
+            <topic name="DeviceStatusTopic"
+                     register_type_ref="DeviceStatus"/>
+
+            <topic name="ProximityTopic"
+                   register_type_ref="ProximityType"/>
+        </domain>
+    </domain_library>
+
+    <domain_participant_library name="DeviceParticipantLibrary">
+        
+        <domain_participant name="ProximitySensorParticipant"
+                            domain_ref="DeviceDomainLibrary::DeviceDomain">
+
+            <publisher name="ProximityPublisher">
+                <data_writer name="DeviceStatusWriter"
+                             topic_ref="DeviceStatusTopic">
+                    <datawriter_qos base_name="DeviceQosLibrary::StatusWriter"/>
+                </data_writer>
+                <data_writer name="ProximityWriter"
+                             topic_ref="ProximityTopic">
+                    <datawriter_qos base_name="DeviceQosLibrary::PeriodicReader"/>
+                </data_writer>
+            </publisher>
+
+            <domain_participant_qos base_name="DeviceQosLibrary::ParticipantProfile"/>
+
+        </domain_participant>
+        
+        <domain_participant name="ControllerParticipant"
+                            domain_ref="DeviceDomainLibrary::DeviceDomain">
+
+            <subscriber name="ProximitySubscriber">
+                <data_reader name="ProximityReader"
+                             topic_ref="ProximityTopic">
+                    <datareader_qos base_name="DeviceQosLibrary::PeriodicReader"/>
+                </data_reader>
+                <data_reader name="DeviceStatusReader"
+                             topic_ref="DeviceStatusTopic">
+                    <datareader_qos base_name="DeviceQosLibrary::StatusWriter"/>
+                </data_reader>
+            </subscriber>
+
+            <domain_participant_qos base_name="DeviceQosLibrary::ParticipantProfile"/>
+
+        </domain_participant>        
+    </domain_participant_library>
+
+</dds>

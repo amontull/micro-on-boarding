@@ -147,6 +147,7 @@ SET_PROPERTY(GLOBAL PROPERTY RULE_MESSAGES OFF)
 
 SET(IDL_PATH ${CMAKE_CURRENT_SOURCE_DIR})
 SET(XML_PATH ${CMAKE_CURRENT_SOURCE_DIR})
+SET(RTIME_MAG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/System.xml)
 
 SET(IDL_SOURCE_C ${IDL_PATH}/DatatypeDefinitions.idl)
 
@@ -360,6 +361,8 @@ FOREACH(idl ${IDL_SOURCE_C})
 ENDFOREACH()
 
 IF (DEFINED RTIME_MAG_FILES)
+    SET(APPGEN_OUTPUT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/generated)
+    FILE(MAKE_DIRECTORY ${APPGEN_OUTPUT_DIR})
     FOREACH(xml ${RTIME_MAG_FILES})
         IF (NOT EXISTS ${xml})
             MESSAGE(FATAL_ERROR "${xml} does not exist.")
@@ -371,16 +374,17 @@ IF (DEFINED RTIME_MAG_FILES)
         STRING(REGEX REPLACE "\\.xml" "" basename ${filename})
         GET_FILENAME_COMPONENT(basename ${xml} NAME_WE)
 
-        STRING(REGEX REPLACE "\\.xml" "Qos.xml" xml_qos ${xml})
+        GET_FILENAME_COMPONENT(xml_dir ${xml} DIRECTORY)
+        SET(xml_qos ${xml_dir}/Qos.xml)
         IF (EXISTS ${xml_qos})
             IF(NOT IS_DIRECTORY ${xml_qos})
                 SET(REFERENCED_OPT "YES")
             ENDIF()
         ENDIF()
 
-        LIST(APPEND APP_GEN_C ${CMAKE_CURRENT_SOURCE_DIR}/${basename}Appgen.c)
+        LIST(APPEND APP_GEN_C ${APPGEN_OUTPUT_DIR}/${basename}Appgen.c)
 
-        LIST(APPEND APP_GEN_H ${CMAKE_CURRENT_SOURCE_DIR}/${basename}Appgen.h)
+        LIST(APPEND APP_GEN_H ${APPGEN_OUTPUT_DIR}/${basename}Appgen.h)
 
 
         IF (DEFINED REFERENCED_OPT)
@@ -388,11 +392,11 @@ IF (DEFINED RTIME_MAG_FILES)
                                COMMAND ${COMMAND_PREFIX} ${RTIDDSMAG} -verbosity 1
                                        -language C
                                        -replace
-                                       -d ${CMAKE_CURRENT_SOURCE_DIR}
-                                       -idlFile ${IDL_PATH}/${IDL_SOURCE_C}
-                                       -referencedFile ${XML_PATH}/${basename}Qos.xml
-                                       ${XML_PATH}/${xml}
-                               DEPENDS ${XML_PATH}/${xml} ${XML_PATH}/${basename}Qos.xml
+                                       -d ${APPGEN_OUTPUT_DIR}
+                                       -idlFile ${IDL_SOURCE_C}
+                                           -referencedFile ${xml_qos}
+                                           ${xml}
+                                       DEPENDS ${xml} ${xml_qos}
                                COMMENT "Regeneration of application support from ${xml}"
             )
         ELSE()
@@ -400,10 +404,10 @@ IF (DEFINED RTIME_MAG_FILES)
                                COMMAND ${COMMAND_PREFIX} ${RTIDDSMAG} -verbosity 1
                                        -language C
                                        -replace
-                                       -d ${CMAKE_CURRENT_SOURCE_DIR}
-                                       -idlFile ${IDL_PATH}/${IDL_SOURCE_C}
-                                       ${XML_PATH}/${xml}
-                               DEPENDS ${XML_PATH}/${xml}
+                                       -d ${APPGEN_OUTPUT_DIR}
+                                       -idlFile ${IDL_SOURCE_C}
+                                           ${xml}
+                                       DEPENDS ${xml}
                                COMMENT "Regeneration of application support from ${xml}"
             )
         ENDIF()
