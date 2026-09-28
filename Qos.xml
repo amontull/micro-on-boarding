@@ -12,7 +12,7 @@
                 <discovery>
                     <initial_peers>
                         <element>127.0.0.1</element>
-                        <!-- <element>239.255.0.1</element> -->
+                        <element>239.255.0.1</element>
                     </initial_peers>
                     <enabled_transports>
                         <element>udpv4</element>

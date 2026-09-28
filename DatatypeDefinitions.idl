@@ -1,0 +1,67 @@
+const string<16> DEVICE_STATUS_TOPIC = "DeviceStatusTopic";
+const string<16> PROXIMITY_TOPIC = "ProximityTopic";
+
+
+/* Kind of physical device. */
+enum DeviceKind {
+    SENSOR,
+    ACTUATOR
+};
+
+/* Sensor-specific device kinds. */
+enum SensorKind {
+    TEMPERATURE,
+    PROXIMITY,
+    PRESURE
+};
+
+/* Actuator-specific device kinds. */
+enum ActuatorKind {
+    BRAKE,
+    BEAM,
+    HONK
+};
+
+/*
+ * The active union member is selected by DeviceKind:
+ * - SENSOR selects sensorKind
+ * - ACTUATOR selects actuatorKind
+ */
+@nested
+union DeviceKindDetail switch (DeviceKind) {
+    case SENSOR:
+        SensorKind sensorKind;
+
+    case ACTUATOR:
+        ActuatorKind actuatorKind;
+};
+
+/* Current on/off state of the device. */
+enum DeviceState {
+    ON,
+    OFF
+};
+
+/*
+ * DDS Topic type for device status.
+ * Each unique deviceId identifies one DDS instance.
+ */
+struct DeviceStatus {
+    @key string<16> deviceId;
+    DeviceKind deviceKind;
+    DeviceKindDetail deviceKindDetail;
+    DeviceState status;
+    /*
+     * Additional human-readable information. Use an empty string when
+     * there is no additional information to report.
+     */
+    string<256> extraInformation;
+};
+
+/**
+ * DDS Topic name for proximity sensor data.
+ */
+struct ProximityType {
+    @key string<16> name;
+    float proximity;
+};
